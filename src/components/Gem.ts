@@ -139,7 +139,7 @@ export class Gem {
     disableClick = () => {
         /*
             The only line really working here is the last one
-            idk why, by on mobile especially, the first 2 has no effect
+            idk why, but on mobile the first 2 lines have no effect
         */
         this.sprite.setInteractive(false);
         this.sprite.on("pointerdown", () => { });
