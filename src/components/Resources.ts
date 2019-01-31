@@ -1,6 +1,6 @@
 import 'phaser';
 
-const IMAGE_PATH = "/assets/";
+const IMAGE_PATH = "./assets/";
 
 class Resource {
     public name: string;

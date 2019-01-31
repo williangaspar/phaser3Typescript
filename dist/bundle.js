@@ -906,7 +906,7 @@ Object.defineProperty(exports, "__esModule", {
 
 __webpack_require__(/*! phaser */ 63);
 
-const IMAGE_PATH = "/assets/";
+const IMAGE_PATH = "./assets/";
 
 class Resource {
   constructor(name, url) {
