@@ -33,7 +33,6 @@ export class Grid<T> {
         }
     }
 
-
     row = (index: number): T[] => {
         return this._row[index];
     }
