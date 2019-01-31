@@ -1,0 +1,14 @@
+{
+	"compilerOptions": {
+		"target": "es6",
+		"module": "commonjs",
+		"sourceMap": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true
+	},
+
+	"files": [
+		"type_def/phaser.d.ts",
+		"src/main.ts"
+	]
+}
