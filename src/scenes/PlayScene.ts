@@ -43,16 +43,16 @@ class GameScene extends Phaser.Scene {
 		});
 	}
 
-	check = () => {
+	check = (chain: number = 0) => {
 		this.input.mouse.enabled = false;
 		let match = this.grid.check();
 		if (match.length) {
 			let match = this.grid.check();
 			this.grid.remove(match).then(() => {
-				match.forEach((e, idx) => this.score.inc(e.list.length * e.list.length + (match.length - idx)));
+				match.forEach((e, idx) => this.score.inc(Math.pow(e.list.length, 2) + (match.length - idx) + Math.pow(chain, 2)));
 				this.grid.repopulate();
 			});
-			setTimeout(this.check, 2000);
+			setTimeout(() => this.check(chain + 1), 2000);
 		} else {
 			this.checkGameover();
 		}
@@ -63,8 +63,7 @@ class GameScene extends Phaser.Scene {
 			if (this.lifes) {
 				this.input.mouse.enabled = true;
 				this.lifes--;
-				this.grid.replaceBadrock();
-				this.check();
+				this.grid.replaceBadrock().then(this.check);
 			} else {
 			this.grid.disableGems();
 				let style = {

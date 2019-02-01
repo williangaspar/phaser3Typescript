@@ -175,30 +175,34 @@ export class GemGrid {
 
     }
 
-    replaceBadrock = () => {
+    replaceBadrock = (): Promise<any> => {
         Gem.GENERATE_BADROCK = false;
-        this.grid.columns.forEach((column, cIdx) => {
-            column.forEach((item, lIdx) => {
-                if (item.type == Resources.badrock.name) {
-                    item.destroy();
-                    let xBegin = cIdx * SPACING + this.x;
-                    let yBegin = -((column.length - lIdx) * SPACING);
-                    let newItem = new Gem({ column: cIdx, row: lIdx, scene: this.scene, visible: true, x: xBegin, y: yBegin });
 
-                    let yFinal = lIdx * SPACING + this.y;
-                    this.grid.setCell({ column: cIdx, row: lIdx }, newItem);
+        return new Promise((resolve) => {
+            this.grid.columns.forEach((column, cIdx) => {
+                column.forEach((item, lIdx) => {
+                    if (item.type == Resources.badrock.name) {
+                        item.destroy();
+                        this.grid.setCell({ column: cIdx, row: lIdx }, null);
 
-                    newItem.fallTo(yFinal, newItem.row);
-                };
+                        setTimeout(() => {
+                            this.fall();
+                            this.repopulate();
+                        }, 500);
+
+                    };
+                });
             });
+            setTimeout(() => {
+                Gem.GENERATE_BADROCK = true;
+                resolve();
+            }, 1500);
         });
-        Gem.GENERATE_BADROCK = true;
     }
 
     disableGems = () => {
         this.grid.columns.forEach((column) => {
             column.forEach((item) => {
-                console.log("clock aqui")
                 item.disableClick();
             });
         });
