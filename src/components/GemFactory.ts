@@ -1,22 +1,7 @@
-import 'phaser';
-import { Resources, Resource } from "./Resources";
-import { Gem, GemFactoryonstructor, GemType } from "./Gem";
+import "phaser";
+import { Gem, GemFactoryonstructor } from "./Gem";
 import { Badrock } from "./Badrock";
-import { Events } from "./Events";
-
-class GemResource {
-    type: GemType;
-    res: Resource;
-    rare: number;
-}
-
-const GEM_LIST: GemResource[] = [
-    { type: GemType.blue, res: Resources.diamondBlue, rare: 0 },
-    { type: GemType.red, res: Resources.diamondRed, rare: 0 },
-    { type: GemType.green, res: Resources.diamondGreen, rare: 0 },
-    { type: GemType.yellow, res: Resources.diamondYellow, rare: 0 },
-    { type: GemType.badrock, res: Resources.badrock, rare: 1 },
-]
+import { GemResource, GEM_LIST, GemType} from "./GemType";
 
 export class GemFactory {
     static getGem = (gemConstructor: GemFactoryonstructor, exclude: GemType[] = []): Gem => {

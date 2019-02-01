@@ -1,10 +1,7 @@
-import 'phaser';
+import "phaser";
 import { Events } from "./Events";
 import { Grid, Coordenate } from './Grid';
-
-export enum GemType {
-    blue, red, green, yellow, badrock, bomb
-}
+import { GemType } from './GemType';
 
 export class GemFactoryonstructor {
     x: number;

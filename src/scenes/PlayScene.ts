@@ -3,6 +3,7 @@ import { GemGrid } from "../components/GemGrid";
 import { Score } from "../components/Score";
 import { Gem } from "../components/Gem";
 import { Events } from "../components/Events";
+import { GEM_LIST } from "../components/GemType";
 
 class GameScene extends Phaser.Scene {
 	background: Phaser.GameObjects.Image;
@@ -19,12 +20,8 @@ class GameScene extends Phaser.Scene {
 
 	preload() {
 		Resources.load(this, Resources.background);
-		Resources.load(this, Resources.diamondBlue);
-		Resources.load(this, Resources.diamondRed);
-		Resources.load(this, Resources.diamondGreen);
-		Resources.load(this, Resources.diamondYellow);
-		Resources.load(this, Resources.badrock);
 		Resources.load(this, Resources.scorePanel);
+		GEM_LIST.forEach((e) => Resources.load(this, e.res));
 	}
 
 	create() {
@@ -65,7 +62,7 @@ class GameScene extends Phaser.Scene {
 				this.lifes--;
 				this.grid.replaceBadrock().then(this.check);
 			} else {
-			this.grid.disableGems();
+				this.grid.disableGems();
 				let style = {
 					font: "bold 50px Courier",
 					fill: "#fff",

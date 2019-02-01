@@ -1,4 +1,4 @@
-import 'phaser';
+import "phaser";
 
 import GameScene from './scenes/PlayScene';
 

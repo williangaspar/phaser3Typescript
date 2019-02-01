@@ -1,4 +1,4 @@
-import 'phaser';
+import "phaser";
 
 const IMAGE_PATH = "./assets/";
 

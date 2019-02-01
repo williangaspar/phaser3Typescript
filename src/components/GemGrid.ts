@@ -1,10 +1,9 @@
-import 'phaser';
-import { Gem, GemType } from "./Gem";
+import "phaser";
+import { Gem } from "./Gem";
 import { MatchSequenceHelper } from "./MatchSequenceHelper";
 import { GemFactory } from "./GemFactory";
 import { Grid, Coordenate } from "./Grid";
-import { Resources } from './Resources';
-import { Events } from './Events';
+import { GemType } from './GemType';
 
 const SPACING = 70;
 

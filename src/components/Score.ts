@@ -1,4 +1,4 @@
-import 'phaser';
+import "phaser";
 import { Resources } from './Resources';
 
 class ScoreConstructor {

@@ -23,6 +23,8 @@ const Score_1 = __webpack_require__(/*! ../components/Score */ 1085);
 
 const Events_1 = __webpack_require__(/*! ../components/Events */ 436);
 
+const GemType_1 = __webpack_require__(/*! ../components/GemType */ 1087);
+
 class GameScene extends Phaser.Scene {
   constructor() {
     super({
@@ -72,12 +74,8 @@ class GameScene extends Phaser.Scene {
 
   preload() {
     Resources_1.Resources.load(this, Resources_1.Resources.background);
-    Resources_1.Resources.load(this, Resources_1.Resources.diamondBlue);
-    Resources_1.Resources.load(this, Resources_1.Resources.diamondRed);
-    Resources_1.Resources.load(this, Resources_1.Resources.diamondGreen);
-    Resources_1.Resources.load(this, Resources_1.Resources.diamondYellow);
-    Resources_1.Resources.load(this, Resources_1.Resources.badrock);
     Resources_1.Resources.load(this, Resources_1.Resources.scorePanel);
+    GemType_1.GEM_LIST.forEach(e => Resources_1.Resources.load(this, e.res));
   }
 
   create() {
@@ -158,13 +156,13 @@ Object.defineProperty(exports, "__esModule", {
 
 __webpack_require__(/*! phaser */ 54);
 
-const Gem_1 = __webpack_require__(/*! ./Gem */ 212);
-
 const MatchSequenceHelper_1 = __webpack_require__(/*! ./MatchSequenceHelper */ 1081);
 
 const GemFactory_1 = __webpack_require__(/*! ./GemFactory */ 1082);
 
 const Grid_1 = __webpack_require__(/*! ./Grid */ 1084);
+
+const GemType_1 = __webpack_require__(/*! ./GemType */ 1087);
 
 const SPACING = 70;
 
@@ -242,7 +240,7 @@ class GemGrid {
           row: possibleMoves[i].row
         });
 
-        if (overlapItem && overlapItem.type != Gem_1.GemType.badrock) {
+        if (overlapItem && overlapItem.type != GemType_1.GemType.badrock) {
           let width = overlapItem.sprite.width / 2 - 10;
           let height = overlapItem.sprite.height / 2 - 10;
           let xBoundary = [overlapItem.x - width, overlapItem.x + width];
@@ -325,7 +323,7 @@ class GemGrid {
               row: possibleMoves[i].row
             });
 
-            if (!(gem.type == Gem_1.GemType.badrock || swapGem.type == Gem_1.GemType.badrock)) {
+            if (!(gem.type == GemType_1.GemType.badrock || swapGem.type == GemType_1.GemType.badrock)) {
               let matchListGrid = [];
               this.swapPosition(gem, swapGem, false);
               this.searchSequenceOnGrid([this.grid.row(gem.row)], matchListGrid);
@@ -351,7 +349,7 @@ class GemGrid {
       return new Promise(resolve => {
         this.grid.columns.forEach((column, cIdx) => {
           column.forEach((item, lIdx) => {
-            if (item.type == Gem_1.GemType.badrock) {
+            if (item.type == GemType_1.GemType.badrock) {
               item.destroy();
               this.grid.setCell({
                 column: cIdx,
@@ -359,7 +357,7 @@ class GemGrid {
               }, null);
               setTimeout(() => {
                 this.fall();
-                this.repopulate([Gem_1.GemType.badrock]);
+                this.repopulate([GemType_1.GemType.badrock]);
               }, 500);
             }
 
@@ -398,7 +396,7 @@ class GemGrid {
 
       if (matchItem.length) {
         matchItem[0].add(item);
-      } else if (item.type != Gem_1.GemType.badrock) {
+      } else if (item.type != GemType_1.GemType.badrock) {
         let newMatchItem = new MatchSequenceHelper_1.MatchSequenceHelper(item);
         matchList.push(newMatchItem);
       }
@@ -452,7 +450,7 @@ class GemGrid {
         x,
         y,
         grid
-      }, [Gem_1.GemType.badrock]);
+      }, [GemType_1.GemType.badrock]);
       return item;
     });
     this.x = cObj.x;
@@ -538,43 +536,19 @@ Object.defineProperty(exports, "__esModule", {
 
 __webpack_require__(/*! phaser */ 54);
 
-const Resources_1 = __webpack_require__(/*! ./Resources */ 211);
-
 const Gem_1 = __webpack_require__(/*! ./Gem */ 212);
 
 const Badrock_1 = __webpack_require__(/*! ./Badrock */ 1083);
 
-class GemResource {}
-
-const GEM_LIST = [{
-  type: Gem_1.GemType.blue,
-  res: Resources_1.Resources.diamondBlue,
-  rare: 0
-}, {
-  type: Gem_1.GemType.red,
-  res: Resources_1.Resources.diamondRed,
-  rare: 0
-}, {
-  type: Gem_1.GemType.green,
-  res: Resources_1.Resources.diamondGreen,
-  rare: 0
-}, {
-  type: Gem_1.GemType.yellow,
-  res: Resources_1.Resources.diamondYellow,
-  rare: 0
-}, {
-  type: Gem_1.GemType.badrock,
-  res: Resources_1.Resources.badrock,
-  rare: 1
-}];
+const GemType_1 = __webpack_require__(/*! ./GemType */ 1087);
 
 class GemFactory {}
 
 GemFactory.getGem = (gemConstructor, exclude = []) => {
-  let gemList = GEM_LIST.filter(g => !exclude.some(e => e == g.type));
+  let gemList = GemType_1.GEM_LIST.filter(g => !exclude.some(e => e == g.type));
   let item = GemFactory.getType(gemList);
 
-  if (item.type == Gem_1.GemType.badrock) {
+  if (item.type == GemType_1.GemType.badrock) {
     return new Badrock_1.Badrock(Object.assign({}, gemConstructor, {
       typeName: item.res.name,
       type: item.type
@@ -782,6 +756,60 @@ exports.Score = Score;
 
 /***/ }),
 
+/***/ 1087:
+/*!***********************************!*\
+  !*** ./src/components/GemType.ts ***!
+  \***********************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const Resources_1 = __webpack_require__(/*! ./Resources */ 211);
+
+var GemType;
+
+(function (GemType) {
+  GemType[GemType["blue"] = 0] = "blue";
+  GemType[GemType["red"] = 1] = "red";
+  GemType[GemType["green"] = 2] = "green";
+  GemType[GemType["yellow"] = 3] = "yellow";
+  GemType[GemType["badrock"] = 4] = "badrock";
+})(GemType = exports.GemType || (exports.GemType = {}));
+
+class GemResource {}
+
+exports.GemResource = GemResource;
+exports.GEM_LIST = [{
+  type: GemType.blue,
+  res: Resources_1.Resources.diamondBlue,
+  rare: 0
+}, {
+  type: GemType.red,
+  res: Resources_1.Resources.diamondRed,
+  rare: 0
+}, {
+  type: GemType.green,
+  res: Resources_1.Resources.diamondGreen,
+  rare: 0
+}, {
+  type: GemType.yellow,
+  res: Resources_1.Resources.diamondYellow,
+  rare: 0
+}, {
+  type: GemType.badrock,
+  res: Resources_1.Resources.badrock,
+  rare: 1
+}];
+
+/***/ }),
+
 /***/ 211:
 /*!*************************************!*\
   !*** ./src/components/Resources.ts ***!
@@ -846,17 +874,6 @@ Object.defineProperty(exports, "__esModule", {
 __webpack_require__(/*! phaser */ 54);
 
 const Events_1 = __webpack_require__(/*! ./Events */ 436);
-
-var GemType;
-
-(function (GemType) {
-  GemType[GemType["blue"] = 0] = "blue";
-  GemType[GemType["red"] = 1] = "red";
-  GemType[GemType["green"] = 2] = "green";
-  GemType[GemType["yellow"] = 3] = "yellow";
-  GemType[GemType["badrock"] = 4] = "badrock";
-  GemType[GemType["bomb"] = 5] = "bomb";
-})(GemType = exports.GemType || (exports.GemType = {}));
 
 class GemFactoryonstructor {}
 

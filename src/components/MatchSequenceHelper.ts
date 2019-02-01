@@ -1,4 +1,5 @@
-import { Gem, GemType } from "./Gem";
+import { Gem} from "./Gem";
+import { GemType } from "./GemType";
 
 export class MatchSequenceHelper {
     public type: GemType;
