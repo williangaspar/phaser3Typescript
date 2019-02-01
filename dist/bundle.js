@@ -1,6 +1,6 @@
 webpackJsonp([0],{
 
-/***/ 1079:
+/***/ 1080:
 /*!*********************************!*\
   !*** ./src/scenes/PlayScene.ts ***!
   \*********************************/
@@ -17,13 +17,13 @@ Object.defineProperty(exports, "__esModule", {
 
 const Resources_1 = __webpack_require__(/*! ../components/Resources */ 211);
 
-const GemGrid_1 = __webpack_require__(/*! ../components/GemGrid */ 1080);
+const GemGrid_1 = __webpack_require__(/*! ../components/GemGrid */ 1081);
 
-const Score_1 = __webpack_require__(/*! ../components/Score */ 1085);
+const Score_1 = __webpack_require__(/*! ../components/Score */ 1087);
 
-const Events_1 = __webpack_require__(/*! ../components/Events */ 436);
+const Events_1 = __webpack_require__(/*! ../components/Events */ 213);
 
-const GemType_1 = __webpack_require__(/*! ../components/GemType */ 212);
+const GemType_1 = __webpack_require__(/*! ../components/GemType */ 214);
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -96,6 +96,14 @@ class GameScene extends Phaser.Scene {
     this.sys.events.on(Events_1.Events.gemClick, gem => {
       this.gem = gem;
     });
+    this.sys.events.on(Events_1.Events.updateScene, () => {
+      this.input.mouse.enabled = false;
+      this.grid.fall();
+      this.grid.repopulate();
+      setTimeout(() => {
+        this.check();
+      }, 1000);
+    });
   }
 
   update(time, delta) {
@@ -139,7 +147,7 @@ exports.default = GameScene;
 
 /***/ }),
 
-/***/ 1080:
+/***/ 1081:
 /*!***********************************!*\
   !*** ./src/components/GemGrid.ts ***!
   \***********************************/
@@ -156,13 +164,13 @@ Object.defineProperty(exports, "__esModule", {
 
 __webpack_require__(/*! phaser */ 54);
 
-const MatchSequenceHelper_1 = __webpack_require__(/*! ./MatchSequenceHelper */ 1081);
+const MatchSequenceHelper_1 = __webpack_require__(/*! ./MatchSequenceHelper */ 1082);
 
-const GemFactory_1 = __webpack_require__(/*! ./GemFactory */ 1082);
+const GemFactory_1 = __webpack_require__(/*! ./GemFactory */ 1083);
 
-const Grid_1 = __webpack_require__(/*! ./Grid */ 1084);
+const Grid_1 = __webpack_require__(/*! ./Grid */ 1086);
 
-const GemType_1 = __webpack_require__(/*! ./GemType */ 212);
+const GemType_1 = __webpack_require__(/*! ./GemType */ 214);
 
 const SPACING = 70;
 
@@ -181,10 +189,7 @@ class GemGrid {
       matchList.forEach(matchItem => {
         let gemList = matchItem.list;
         gemList.forEach(gem => {
-          let coordenate = {
-            column: gem.column,
-            row: gem.row
-          };
+          let coordenate = gem.cell;
 
           if (this.grid.cell(coordenate) != null) {
             gem.destroy();
@@ -208,9 +213,12 @@ class GemGrid {
           if (!item) {
             let xBegin = cIdx * SPACING + this.x;
             let yBegin = -((column.length - lIdx) * SPACING);
-            let newItem = GemFactory_1.GemFactory.getGem({
+            let cell = {
               column: cIdx,
-              row: lIdx,
+              row: lIdx
+            };
+            let newItem = GemFactory_1.GemFactory.getGem({
+              cell,
               scene: this.scene,
               visible: true,
               x: xBegin,
@@ -222,7 +230,7 @@ class GemGrid {
               column: cIdx,
               row: lIdx
             }, newItem);
-            newItem.fallTo(yFinal, newItem.row);
+            newItem.fallTo(yFinal, newItem.cell.row);
           }
 
           ;
@@ -240,7 +248,7 @@ class GemGrid {
           row: possibleMoves[i].row
         });
 
-        if (overlapItem && overlapItem.type != GemType_1.GemType.bedrock) {
+        if (overlapItem && overlapItem.stackable) {
           let width = overlapItem.sprite.width / 2 - 10;
           let height = overlapItem.sprite.height / 2 - 10;
           let xBoundary = [overlapItem.x - width, overlapItem.x + width];
@@ -265,33 +273,21 @@ class GemGrid {
     this.swapPosition = (gem1, gem2, doMoveSprite = true) => {
       let x1 = gem1.x;
       let y1 = gem1.y;
-      let column1 = gem1.column;
-      let row1 = gem1.row;
-      let m1 = {
-        column: column1,
-        row: row1
-      };
+      let cell1 = gem1.cell;
       let x2 = gem2.x;
       let y2 = gem2.y;
-      let column2 = gem2.column;
-      let row2 = gem2.row;
-      let m2 = {
-        column: column2,
-        row: row2
-      };
-      this.grid.setCell(m2, gem1);
-      this.grid.setCell(m1, gem2);
+      let cell2 = gem2.cell;
+      this.grid.setCell(cell2, gem1);
+      this.grid.setCell(cell1, gem2);
       gem1.moveTo({
         x: x2,
         y: y2,
-        row: row2,
-        column: column2
+        cell: cell2
       }, doMoveSprite);
       gem2.moveTo({
         x: x1,
         y: y1,
-        row: row1,
-        column: column1
+        cell: cell1
       }, doMoveSprite);
       return new Promise(resolve => {
         setTimeout(() => {
@@ -320,14 +316,18 @@ class GemGrid {
             let m = possibleMoves[i];
             let swapGem = this.grid.cell({
               column: m.column,
-              row: possibleMoves[i].row
+              row: m.row
             });
 
-            if (!(gem.type == GemType_1.GemType.bedrock || swapGem.type == GemType_1.GemType.bedrock)) {
+            if (swapGem.type == GemType_1.GemType.bomb) {
+              return false;
+            }
+
+            if (gem.stackable && swapGem.stackable) {
               let matchListGrid = [];
               this.swapPosition(gem, swapGem, false);
-              this.searchSequenceOnGrid([this.grid.row(gem.row)], matchListGrid);
-              this.searchSequenceOnGrid([this.grid.column(gem.column)], matchListGrid);
+              this.searchSequenceOnGrid([this.grid.row(gem.cell.row)], matchListGrid);
+              this.searchSequenceOnGrid([this.grid.column(gem.cell.column)], matchListGrid);
 
               if (matchListGrid.length) {
                 // if yes, just go on.
@@ -378,6 +378,21 @@ class GemGrid {
       });
     };
 
+    this.fall = () => {
+      this.grid.sort((a, b) => {
+        let aValue = a ? 1 : -1;
+        let bValue = b ? 1 : -1;
+        return aValue - bValue;
+      });
+      this.grid.columns.forEach(column => {
+        column.forEach((item, index) => {
+          if (item) {
+            item.fallTo(index * SPACING + this.y, index);
+          }
+        });
+      });
+    };
+
     this.searchSequenceOnGrid = (grid, matchListGrid) => {
       grid.forEach(e => {
         let matchList = this.searchSequenceOnList(e, 0, []);
@@ -396,7 +411,7 @@ class GemGrid {
 
       if (matchItem.length) {
         matchItem[0].add(item);
-      } else if (item.type != GemType_1.GemType.bedrock) {
+      } else if (item.stackable) {
         let newMatchItem = new MatchSequenceHelper_1.MatchSequenceHelper(item);
         matchList.push(newMatchItem);
       }
@@ -417,34 +432,16 @@ class GemGrid {
       ;
     };
 
-    this.fall = () => {
-      this.grid.sort((a, b) => {
-        let aValue = a ? 1 : -1;
-        let bValue = b ? 1 : -1;
-        return aValue - bValue;
-      });
-      this.grid.columns.forEach(column => {
-        column.forEach((item, index) => {
-          if (item) {
-            item.fallTo(index * SPACING + this.y, index);
-          }
-        });
-      });
-    };
-
     this.grid = new Grid_1.Grid({
       column: 6,
       row: 6
     });
-    this.grid.populate(coordenate => {
-      let x = coordenate.column * SPACING + cObj.x;
-      let y = coordenate.row * SPACING + cObj.y;
-      let column = coordenate.column;
-      let row = coordenate.row;
+    this.grid.populate(cell => {
+      let x = cell.column * SPACING + cObj.x;
+      let y = cell.row * SPACING + cObj.y;
       let grid = this.grid;
       let item = GemFactory_1.GemFactory.getGem({
-        column,
-        row,
+        cell,
         scene: cObj.scene,
         visible: true,
         x,
@@ -464,7 +461,7 @@ exports.GemGrid = GemGrid;
 
 /***/ }),
 
-/***/ 1081:
+/***/ 1082:
 /*!***********************************************!*\
   !*** ./src/components/MatchSequenceHelper.ts ***!
   \***********************************************/
@@ -484,7 +481,7 @@ class MatchSequenceHelper {
     this.add = gem => {
       let lastElement = this.currentList[this.currentList.length - 1];
 
-      if (gem.row > lastElement.row + 1 || gem.column > lastElement.column + 1) {
+      if (gem.cell.row > lastElement.cell.row + 1 || gem.cell.column > lastElement.cell.column + 1) {
         // ideintify a gap. Like: B B Y B
         this.end();
       }
@@ -519,7 +516,7 @@ exports.MatchSequenceHelper = MatchSequenceHelper;
 
 /***/ }),
 
-/***/ 1082:
+/***/ 1083:
 /*!**************************************!*\
   !*** ./src/components/GemFactory.ts ***!
   \**************************************/
@@ -536,11 +533,13 @@ Object.defineProperty(exports, "__esModule", {
 
 __webpack_require__(/*! phaser */ 54);
 
-const Gem_1 = __webpack_require__(/*! ./Gem */ 1083);
+const Gem_1 = __webpack_require__(/*! ./Gem */ 212);
 
-const Bedrock_1 = __webpack_require__(/*! ./Bedrock */ 1087);
+const Bedrock_1 = __webpack_require__(/*! ./Bedrock */ 1084);
 
-const GemType_1 = __webpack_require__(/*! ./GemType */ 212);
+const GemType_1 = __webpack_require__(/*! ./GemType */ 214);
+
+const Bomb_1 = __webpack_require__(/*! ./Bomb */ 1085);
 
 class GemFactory {}
 
@@ -550,6 +549,11 @@ GemFactory.getGem = (gemConstructor, exclude = []) => {
 
   if (item.type == GemType_1.GemType.bedrock) {
     return new Bedrock_1.Bedrock(Object.assign({}, gemConstructor, {
+      typeName: item.res.name,
+      type: item.type
+    }));
+  } else if (item.type == GemType_1.GemType.bomb) {
+    return new Bomb_1.Bomb(Object.assign({}, gemConstructor, {
       typeName: item.res.name,
       type: item.type
     }));
@@ -568,7 +572,7 @@ GemFactory.getType = (gemList, lastType = null, iterations = 0) => {
   if (item.rare == 0 || item.rare <= iterations) {
     return item;
   } else {
-    iterations = lastType == item.type || lastType == null ? iterations + 1 : 0;
+    iterations = lastType == item.type || lastType == null ? iterations + 1 : 1;
     return GemFactory.getType(gemList, item.type, iterations);
   }
 };
@@ -577,10 +581,10 @@ exports.GemFactory = GemFactory;
 
 /***/ }),
 
-/***/ 1083:
-/*!*******************************!*\
-  !*** ./src/components/Gem.ts ***!
-  \*******************************/
+/***/ 1084:
+/*!***********************************!*\
+  !*** ./src/components/Bedrock.ts ***!
+  \***********************************/
 /*! dynamic exports provided */
 /*! all exports used */
 /***/ (function(module, exports, __webpack_require__) {
@@ -592,195 +596,105 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-__webpack_require__(/*! phaser */ 54);
+const Gem_1 = __webpack_require__(/*! ./Gem */ 212);
 
-const Events_1 = __webpack_require__(/*! ./Events */ 436);
-
-class GemFactoryonstructor {}
-
-exports.GemFactoryonstructor = GemFactoryonstructor;
-
-class GemConstructor extends GemFactoryonstructor {}
-
-exports.GemConstructor = GemConstructor;
-
-class MoveTo {}
-
-class Gem {
+class Bedrock extends Gem_1.Gem {
   constructor(cObj) {
-    this.disabled = false;
-
-    this.moveTo = (obj, moveSprite = true) => {
-      this._x = obj.x;
-      this._y = obj.y;
-      this._row = obj.row;
-      this._column = obj.column;
-
-      if (moveSprite) {
-        this.backToGridPosition();
-      }
-
-      ;
-    };
-
-    this.fallTo = (y, row) => {
-      this._row = row;
-      this._y = y;
-      this.tween = this.scene.add.tween({
-        targets: [this.sprite],
-        ease: 'Sine.Quadratic.Out',
-        duration: 200 + y - this.sprite.y,
-        delay: 0,
-        y: {
-          getStart: () => this.sprite.y,
-          getEnd: () => y
-        }
-      });
-    };
-
-    this.backToGridPosition = () => {
-      this.tween = this.scene.add.tween({
-        targets: [this.sprite],
-        ease: 'Sine.easeInOut',
-        duration: 100 + (Math.abs(this.sprite.y - this._y) + Math.abs(this.sprite.x - this._y)) / 2,
-        delay: 0,
-        y: {
-          getStart: () => this.sprite.y,
-          getEnd: () => this._y
-        },
-        x: {
-          getStart: () => this.sprite.x,
-          getEnd: () => this._x
-        }
-      });
-    };
-
-    this.disableClick = () => {
-      /*
-          The only line really working here is the last one
-          idk why, but on mobile the first 2 lines have no effect
-      */
-      this.sprite.setInteractive(false);
-      this.sprite.on("pointerdown", () => {});
-      this.disabled = true;
-    };
-
-    this.destroy = () => {
-      this.tween = this.scene.add.tween({
-        targets: [this.sprite],
-        ease: 'Sine.easeInOut',
-        duration: 500,
-        delay: 0,
-        alpha: {
-          getStart: () => this.sprite.alpha,
-          getEnd: () => 0
-        },
-        scaleX: {
-          getStart: () => this.sprite.scaleX,
-          getEnd: () => 0.1
-        },
-        scaleY: {
-          getStart: () => this.sprite.scaleY,
-          getEnd: () => 0.1
-        },
-        onComplete: () => {
-          this.sprite.destroy();
-        }
-      });
-    };
-
-    this.calcPossibleMoves = () => {
-      let maxBoudaryColumns = this.grid.columns.length;
-      let maxBoudaryRows = this.grid.rows.length;
-      let moves = [];
-
-      if (this.column - 1 > -1) {
-        //move to the left
-        moves.push({
-          column: this.column - 1,
-          row: this.row
-        });
-      }
-
-      ;
-
-      if (this.column + 1 < maxBoudaryColumns) {
-        //move to the right
-        moves.push({
-          column: this.column + 1,
-          row: this.row
-        });
-      }
-
-      ;
-
-      if (this.row - 1 > -1) {
-        //move to the top
-        moves.push({
-          column: this.column,
-          row: this.row - 1
-        });
-      }
-
-      ;
-
-      if (this.row + 1 < maxBoudaryRows) {
-        //move to the bottom
-        moves.push({
-          column: this.column,
-          row: this.row + 1
-        });
-      }
-
-      ;
-      return moves;
-    };
-
-    this.type = cObj.type;
-    this.grid = cObj.grid;
-    this.sprite = cObj.scene.add.image(cObj.x, cObj.y, cObj.typeName);
-    this.sprite.visible = cObj.visible;
-    this._column = cObj.column;
-    this._row = cObj.row;
-    this.scene = cObj.scene;
-    this._x = cObj.x;
-    this._y = cObj.y;
-    this.setup();
+    super(cObj);
   }
 
   setup() {
-    this.sprite.setInteractive();
-    this.sprite.on("pointerdown", () => {
-      if (!this.disabled) {
-        this.scene.children.bringToTop(this.sprite);
-        this.scene.sys.events.emit(Events_1.Events.gemClick, this);
-      }
-    });
-  }
-
-  get column() {
-    return this._column;
-  }
-
-  get row() {
-    return this._row;
-  }
-
-  get x() {
-    return this._x;
-  }
-
-  get y() {
-    return this._y;
+    this._stackable = false;
   }
 
 }
 
-exports.Gem = Gem;
+exports.Bedrock = Bedrock;
 
 /***/ }),
 
-/***/ 1084:
+/***/ 1085:
+/*!********************************!*\
+  !*** ./src/components/Bomb.ts ***!
+  \********************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const Gem_1 = __webpack_require__(/*! ./Gem */ 212);
+
+const Events_1 = __webpack_require__(/*! ./Events */ 213);
+
+class Bomb extends Gem_1.Gem {
+  constructor(cObj) {
+    super(cObj);
+
+    this.explode = () => {
+      let possibleMoves = this.calcPossibleMoves();
+      possibleMoves.forEach(m => {
+        let gem = this.grid.cell({
+          column: m.column,
+          row: m.row
+        });
+        gem.destroy();
+        this.grid.setCell(gem.cell, null);
+      });
+    };
+  }
+
+  setup() {
+    this.sprite.setInteractive();
+    this._stackable = false;
+    this.sprite.on("pointerdown", () => {
+      if (!this.disabled) {
+        this.onDestroy();
+        this.explode();
+        setTimeout(() => {
+          this.scene.sys.events.emit(Events_1.Events.updateScene);
+        }, 500);
+      }
+    });
+  }
+
+  onDestroy() {
+    this.grid.setCell(this.cell, null);
+    this.tween = this.scene.add.tween({
+      targets: [this.sprite],
+      ease: 'Easing.Bounce.InOut',
+      duration: 300,
+      delay: 0,
+      alpha: {
+        getStart: () => this.sprite.alpha,
+        getEnd: () => 0
+      },
+      scaleX: {
+        getStart: () => this.sprite.scaleX,
+        getEnd: () => 1.3
+      },
+      scaleY: {
+        getStart: () => this.sprite.scaleY,
+        getEnd: () => 1.3
+      },
+      onComplete: () => {
+        this.sprite.destroy();
+      }
+    });
+  }
+
+}
+
+exports.Bomb = Bomb;
+
+/***/ }),
+
+/***/ 1086:
 /*!********************************!*\
   !*** ./src/components/Grid.ts ***!
   \********************************/
@@ -848,6 +762,25 @@ class Grid {
       }
     };
 
+    this.filter = func => {
+      let list = [];
+
+      for (let l = 0; l < this.numberOfColumns; l++) {
+        for (let c = 0; c < this.numberOfRows; c++) {
+          if (func(this._columns[c][l])) {
+            list.push(this._columns[c][l]);
+          }
+
+          ;
+        }
+
+        ;
+      }
+
+      ;
+      return list;
+    };
+
     this.createEmptyList = size => {
       let list = [];
 
@@ -879,7 +812,7 @@ exports.Grid = Grid;
 
 /***/ }),
 
-/***/ 1085:
+/***/ 1087:
 /*!*********************************!*\
   !*** ./src/components/Score.ts ***!
   \*********************************/
@@ -929,36 +862,6 @@ exports.Score = Score;
 
 /***/ }),
 
-/***/ 1087:
-/*!***********************************!*\
-  !*** ./src/components/Bedrock.ts ***!
-  \***********************************/
-/*! dynamic exports provided */
-/*! all exports used */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const Gem_1 = __webpack_require__(/*! ./Gem */ 1083);
-
-class Bedrock extends Gem_1.Gem {
-  constructor(cObj) {
-    super(cObj);
-  }
-
-  setup() {}
-
-}
-
-exports.Bedrock = Bedrock;
-
-/***/ }),
-
 /***/ 211:
 /*!*************************************!*\
   !*** ./src/components/Resources.ts ***!
@@ -999,6 +902,7 @@ Resources.diamondBlue = new Resource("diamondBlue", IMAGE_PATH + "diamond_blue.p
 Resources.diamondRed = new Resource("diamondRed", IMAGE_PATH + "diamond_red.png");
 Resources.diamondGreen = new Resource("diamondGreen", IMAGE_PATH + "diamond_green.png");
 Resources.diamondYellow = new Resource("diamondYellow", IMAGE_PATH + "diamond_yellow.png");
+Resources.bomb = new Resource("bomb", IMAGE_PATH + "bomb.png");
 Resources.bedrock = new Resource("bedrock", IMAGE_PATH + "diamond_gray.png");
 Resources.scorePanel = new Resource("scorePanel", IMAGE_PATH + "score_panel.png");
 exports.Resources = Resources;
@@ -1006,6 +910,235 @@ exports.Resources = Resources;
 /***/ }),
 
 /***/ 212:
+/*!*******************************!*\
+  !*** ./src/components/Gem.ts ***!
+  \*******************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+__webpack_require__(/*! phaser */ 54);
+
+const Events_1 = __webpack_require__(/*! ./Events */ 213);
+
+class GemFactoryonstructor {}
+
+exports.GemFactoryonstructor = GemFactoryonstructor;
+
+class GemConstructor extends GemFactoryonstructor {}
+
+exports.GemConstructor = GemConstructor;
+
+class MoveTo {}
+
+class Gem {
+  constructor(cObj) {
+    this.disabled = false;
+
+    this.moveTo = (obj, moveSprite = true) => {
+      this._x = obj.x;
+      this._y = obj.y;
+      this._cell = obj.cell;
+
+      if (moveSprite) {
+        this.backToGridPosition();
+      }
+
+      ;
+    };
+
+    this.fallTo = (y, row) => {
+      this._cell.row = row;
+      this._y = y;
+      this.tween = this.scene.add.tween({
+        targets: [this.sprite],
+        ease: 'Sine.Quadratic.Out',
+        duration: 200 + y - this.sprite.y,
+        delay: 0,
+        y: {
+          getStart: () => this.sprite.y,
+          getEnd: () => y
+        }
+      });
+    };
+
+    this.backToGridPosition = () => {
+      this.tween = this.scene.add.tween({
+        targets: [this.sprite],
+        ease: 'Sine.easeInOut',
+        duration: 100 + (Math.abs(this.sprite.y - this._y) + Math.abs(this.sprite.x - this._y)) / 2,
+        delay: 0,
+        y: {
+          getStart: () => this.sprite.y,
+          getEnd: () => this._y
+        },
+        x: {
+          getStart: () => this.sprite.x,
+          getEnd: () => this._x
+        }
+      });
+    };
+
+    this.disableClick = () => {
+      /*
+          The only line really working here is the last one
+          idk why, but on mobile the first 2 lines have no effect
+      */
+      this.sprite.setInteractive(false);
+      this.sprite.on("pointerdown", () => {});
+      this.disabled = true;
+    };
+
+    this.destroy = () => {
+      this.onDestroy();
+    };
+
+    this.calcPossibleMoves = () => {
+      let maxBoudaryColumns = this.grid.columns.length;
+      let maxBoudaryRows = this.grid.rows.length;
+      let moves = [];
+
+      if (this.cell.column - 1 > -1) {
+        //move to the left
+        moves.push({
+          column: this.cell.column - 1,
+          row: this.cell.row
+        });
+      }
+
+      ;
+
+      if (this.cell.column + 1 < maxBoudaryColumns) {
+        //move to the right
+        moves.push({
+          column: this.cell.column + 1,
+          row: this.cell.row
+        });
+      }
+
+      ;
+
+      if (this.cell.row - 1 > -1) {
+        //move to the top
+        moves.push({
+          column: this.cell.column,
+          row: this.cell.row - 1
+        });
+      }
+
+      ;
+
+      if (this.cell.row + 1 < maxBoudaryRows) {
+        //move to the bottom
+        moves.push({
+          column: this.cell.column,
+          row: this.cell.row + 1
+        });
+      }
+
+      ;
+      return moves;
+    };
+
+    this.type = cObj.type;
+    this.grid = cObj.grid;
+    this.sprite = cObj.scene.add.image(cObj.x, cObj.y, cObj.typeName);
+    this.sprite.visible = cObj.visible;
+    this._cell = cObj.cell;
+    this.scene = cObj.scene;
+    this._x = cObj.x;
+    this._y = cObj.y;
+    this.setup();
+  }
+
+  setup() {
+    this._stackable = true;
+    this.sprite.setInteractive();
+    this.sprite.on("pointerdown", () => {
+      if (!this.disabled) {
+        this.scene.children.bringToTop(this.sprite);
+        this.scene.sys.events.emit(Events_1.Events.gemClick, this);
+      }
+    });
+  }
+
+  get cell() {
+    return this._cell;
+  }
+
+  get x() {
+    return this._x;
+  }
+
+  get y() {
+    return this._y;
+  }
+
+  get stackable() {
+    return this._stackable;
+  }
+
+  onDestroy() {
+    this.tween = this.scene.add.tween({
+      targets: [this.sprite],
+      ease: 'Sine.easeInOut',
+      duration: 500,
+      delay: 0,
+      alpha: {
+        getStart: () => this.sprite.alpha,
+        getEnd: () => 0
+      },
+      scaleX: {
+        getStart: () => this.sprite.scaleX,
+        getEnd: () => 0.1
+      },
+      scaleY: {
+        getStart: () => this.sprite.scaleY,
+        getEnd: () => 0.1
+      },
+      onComplete: () => {
+        this.sprite.destroy();
+      }
+    });
+  }
+
+}
+
+exports.Gem = Gem;
+
+/***/ }),
+
+/***/ 213:
+/*!**********************************!*\
+  !*** ./src/components/Events.ts ***!
+  \**********************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var Events;
+
+(function (Events) {
+  Events[Events["gemClick"] = 0] = "gemClick";
+  Events[Events["updateScene"] = 1] = "updateScene";
+})(Events = exports.Events || (exports.Events = {}));
+
+/***/ }),
+
+/***/ 214:
 /*!***********************************!*\
   !*** ./src/components/GemType.ts ***!
   \***********************************/
@@ -1030,6 +1163,7 @@ var GemType;
   GemType[GemType["green"] = 2] = "green";
   GemType[GemType["yellow"] = 3] = "yellow";
   GemType[GemType["bedrock"] = 4] = "bedrock";
+  GemType[GemType["bomb"] = 5] = "bomb";
 })(GemType = exports.GemType || (exports.GemType = {}));
 
 class GemResource {}
@@ -1055,33 +1189,15 @@ exports.GEM_LIST = [{
   type: GemType.bedrock,
   res: Resources_1.Resources.bedrock,
   rare: 1
+}, {
+  type: GemType.bomb,
+  res: Resources_1.Resources.bomb,
+  rare: 2
 }];
 
 /***/ }),
 
-/***/ 436:
-/*!**********************************!*\
-  !*** ./src/components/Events.ts ***!
-  \**********************************/
-/*! dynamic exports provided */
-/*! all exports used */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-var Events;
-
-(function (Events) {
-  Events[Events["gemClick"] = 0] = "gemClick";
-})(Events = exports.Events || (exports.Events = {}));
-
-/***/ }),
-
-/***/ 437:
+/***/ 438:
 /*!***************************!*\
   !*** multi ./src/main.ts ***!
   \***************************/
@@ -1089,12 +1205,12 @@ var Events;
 /*! all exports used */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(/*! /home/willian/dev/js/phaser/phaser3Typescript/src/main.ts */438);
+module.exports = __webpack_require__(/*! /home/willian/dev/js/phaser/phaser3Typescript/src/main.ts */439);
 
 
 /***/ }),
 
-/***/ 438:
+/***/ 439:
 /*!*********************!*\
   !*** ./src/main.ts ***!
   \*********************/
@@ -1117,7 +1233,7 @@ Object.defineProperty(exports, "__esModule", {
 
 __webpack_require__(/*! phaser */ 54);
 
-const PlayScene_1 = __importDefault(__webpack_require__(/*! ./scenes/PlayScene */ 1079));
+const PlayScene_1 = __importDefault(__webpack_require__(/*! ./scenes/PlayScene */ 1080));
 
 const config = {
   type: Phaser.AUTO,
@@ -1133,5 +1249,5 @@ new Phaser.Game(config);
 
 /***/ })
 
-},[437]);
+},[438]);
 //# sourceMappingURL=bundle.js.map

@@ -1,7 +1,7 @@
 import { Resource, Resources } from "./Resources";
 
 export enum GemType {
-    blue, red, green, yellow, bedrock
+    blue, red, green, yellow, bedrock, bomb
 }
 
 export class GemResource {
@@ -16,4 +16,5 @@ export const GEM_LIST: GemResource[] = [
     { type: GemType.green, res: Resources.diamondGreen, rare: 0 },
     { type: GemType.yellow, res: Resources.diamondYellow, rare: 0 },
     { type: GemType.bedrock, res: Resources.bedrock, rare: 1 },
+    { type: GemType.bomb, res: Resources.bomb, rare: 2 },
 ]

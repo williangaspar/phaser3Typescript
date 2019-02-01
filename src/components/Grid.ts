@@ -70,6 +70,19 @@ export class Grid<T> {
         }
     }
 
+    filter = (func: (e: T) => boolean) => {
+        let list: T[] = [];
+        for (let l = 0; l < this.numberOfColumns; l++) {
+            for (let c = 0; c < this.numberOfRows; c++) {
+                if (func(this._columns[c][l])) {
+                    list.push(this._columns[c][l]);
+                };
+            };
+        };
+
+        return list;
+    }
+
     private createEmptyList = (size: number): T[][] => {
         let list = [];
         for (let i = 0; i < size; i++) {

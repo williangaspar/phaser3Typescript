@@ -6,6 +6,6 @@ export class Bedrock extends Gem {
     }
 
     protected setup() {
-
+        this._stackable = false;
     }
 }

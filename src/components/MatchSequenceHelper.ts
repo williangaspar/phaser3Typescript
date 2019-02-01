@@ -1,4 +1,4 @@
-import { Gem} from "./Gem";
+import { Gem } from "./Gem";
 import { GemType } from "./GemType";
 
 export class MatchSequenceHelper {
@@ -12,9 +12,9 @@ export class MatchSequenceHelper {
 
     }
 
-    add = (gem) => {
+    add = (gem: Gem) => {
         let lastElement = this.currentList[this.currentList.length - 1];
-        if (gem.row > lastElement.row + 1 || gem.column > lastElement.column + 1) { // ideintify a gap. Like: B B Y B
+        if (gem.cell.row > lastElement.cell.row + 1 || gem.cell.column > lastElement.cell.column + 1) { // ideintify a gap. Like: B B Y B
             this.end();
         }
 

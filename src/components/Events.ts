@@ -1,1 +1,1 @@
-export enum Events { "gemClick" }
+export enum Events { "gemClick", "updateScene" }

@@ -6,8 +6,7 @@ import { GemType } from './GemType';
 export class GemFactoryonstructor {
     x: number;
     y: number;
-    column: number;
-    row: number;
+    cell: Coordenate;
     visible: boolean;
     scene: Phaser.Scene;
     grid: Grid<Gem>;
@@ -21,20 +20,21 @@ export class GemConstructor extends GemFactoryonstructor {
 class MoveTo {
     x: number;
     y: number;
-    column: number;
-    row: number;
+    cell: Coordenate;
 }
 
 export class Gem {
     readonly type: GemType;
     readonly scene: Phaser.Scene;
     readonly sprite: Phaser.GameObjects.Image;
-    private grid: Grid<Gem>;
+
     private _x: number;
     private _y: number;
-    private _column: number;
-    private _row: number;
-    private disabled: boolean = false;
+    private _cell: Coordenate;
+
+    protected disabled: boolean = false;
+    protected grid: Grid<Gem>;
+    protected _stackable: boolean;
 
     tween: Phaser.Tweens.Tween;
 
@@ -45,8 +45,7 @@ export class Gem {
         this.sprite = cObj.scene.add.image(cObj.x, cObj.y, cObj.typeName);
         this.sprite.visible = cObj.visible;
 
-        this._column = cObj.column;
-        this._row = cObj.row;
+        this._cell = cObj.cell;
         this.scene = cObj.scene;
         this._x = cObj.x;
         this._y = cObj.y
@@ -55,6 +54,7 @@ export class Gem {
     }
 
     protected setup() {
+        this._stackable = true;
         this.sprite.setInteractive();
         this.sprite.on("pointerdown", () => {
             if (!this.disabled) {
@@ -65,12 +65,8 @@ export class Gem {
         });
     }
 
-    get column() {
-        return this._column;
-    }
-
-    get row() {
-        return this._row;
+    get cell() {
+        return this._cell;
     }
 
     get x() {
@@ -81,11 +77,14 @@ export class Gem {
         return this._y;
     }
 
+    get stackable() {
+        return this._stackable;
+    }
+
     moveTo = (obj: MoveTo, moveSprite: boolean = true) => {
         this._x = obj.x;
         this._y = obj.y;
-        this._row = obj.row;
-        this._column = obj.column;
+        this._cell = obj.cell
 
         if (moveSprite) {
             this.backToGridPosition();
@@ -93,7 +92,7 @@ export class Gem {
     }
 
     fallTo = (y: number, row: number) => {
-        this._row = row;
+        this._cell.row = row;
         this._y = y;
         this.tween = this.scene.add.tween({
             targets: [this.sprite],
@@ -136,6 +135,34 @@ export class Gem {
     }
 
     destroy = () => {
+        this.onDestroy();
+    }
+
+    calcPossibleMoves = (): Coordenate[] => {
+        let maxBoudaryColumns = this.grid.columns.length;
+        let maxBoudaryRows = this.grid.rows.length;
+        let moves: Coordenate[] = [];
+
+        if (this.cell.column - 1 > -1) { //move to the left
+            moves.push({ column: this.cell.column - 1, row: this.cell.row });
+        };
+
+        if (this.cell.column + 1 < maxBoudaryColumns) { //move to the right
+            moves.push({ column: this.cell.column + 1, row: this.cell.row });
+        };
+
+        if (this.cell.row - 1 > -1) { //move to the top
+            moves.push({ column: this.cell.column, row: this.cell.row - 1 });
+        };
+
+        if (this.cell.row + 1 < maxBoudaryRows) { //move to the bottom
+            moves.push({ column: this.cell.column, row: this.cell.row + 1 });
+        };
+
+        return moves;
+    }
+
+    protected onDestroy() {
         this.tween = this.scene.add.tween({
             targets: [this.sprite],
             ease: 'Sine.easeInOut',
@@ -157,29 +184,5 @@ export class Gem {
                 this.sprite.destroy();
             }
         });
-    }
-
-    calcPossibleMoves = (): Coordenate[] => {
-        let maxBoudaryColumns = this.grid.columns.length;
-        let maxBoudaryRows = this.grid.rows.length;
-        let moves: Coordenate[] = [];
-
-        if (this.column - 1 > -1) { //move to the left
-            moves.push({ column: this.column - 1, row: this.row });
-        };
-
-        if (this.column + 1 < maxBoudaryColumns) { //move to the right
-            moves.push({ column: this.column + 1, row: this.row });
-        };
-
-        if (this.row - 1 > -1) { //move to the top
-            moves.push({ column: this.column, row: this.row - 1 });
-        };
-
-        if (this.row + 1 < maxBoudaryRows) { //move to the bottom
-            moves.push({ column: this.column, row: this.row + 1 });
-        };
-
-        return moves;
     }
 }

@@ -38,6 +38,16 @@ class GameScene extends Phaser.Scene {
 		this.sys.events.on(Events.gemClick, (gem: Gem) => {
 			this.gem = gem;
 		});
+
+		this.sys.events.on(Events.updateScene, () => {
+			this.input.mouse.enabled = false;
+			this.grid.fall();
+			this.grid.repopulate();
+			setTimeout(() => {
+				this.check();
+			}, 1000);
+
+		});
 	}
 
 	check = (chain: number = 0) => {
