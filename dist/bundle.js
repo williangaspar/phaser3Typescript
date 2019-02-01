@@ -1,6 +1,6 @@
 webpackJsonp([0],{
 
-/***/ 1078:
+/***/ 1079:
 /*!*********************************!*\
   !*** ./src/scenes/PlayScene.ts ***!
   \*********************************/
@@ -15,13 +15,13 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-const Resources_1 = __webpack_require__(/*! ../components/Resources */ 128);
+const Resources_1 = __webpack_require__(/*! ../components/Resources */ 211);
 
-const GemGrid_1 = __webpack_require__(/*! ../components/GemGrid */ 1079);
+const GemGrid_1 = __webpack_require__(/*! ../components/GemGrid */ 1080);
 
-const Score_1 = __webpack_require__(/*! ../components/Score */ 1083);
+const Score_1 = __webpack_require__(/*! ../components/Score */ 1085);
 
-const Events_1 = __webpack_require__(/*! ../components/Events */ 435);
+const Events_1 = __webpack_require__(/*! ../components/Events */ 436);
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -29,17 +29,17 @@ class GameScene extends Phaser.Scene {
       key: 'GameScene'
     });
 
-    this.check = () => {
+    this.check = (chain = 0) => {
       this.input.mouse.enabled = false;
       let match = this.grid.check();
 
       if (match.length) {
         let match = this.grid.check();
         this.grid.remove(match).then(() => {
-          match.forEach((e, idx) => this.score.inc(e.list.length * e.list.length + (match.length - idx)));
+          match.forEach((e, idx) => this.score.inc(Math.pow(e.list.length, 2) + (match.length - idx) + Math.pow(chain, 2)));
           this.grid.repopulate();
         });
-        setTimeout(this.check, 2000);
+        setTimeout(() => this.check(chain + 1), 2000);
       } else {
         this.checkGameover();
       }
@@ -50,8 +50,7 @@ class GameScene extends Phaser.Scene {
         if (this.lifes) {
           this.input.mouse.enabled = true;
           this.lifes--;
-          this.grid.replaceBadrock();
-          this.check();
+          this.grid.replaceBadrock().then(this.check);
         } else {
           this.grid.disableGems();
           let style = {
@@ -142,7 +141,7 @@ exports.default = GameScene;
 
 /***/ }),
 
-/***/ 1079:
+/***/ 1080:
 /*!***********************************!*\
   !*** ./src/components/GemGrid.ts ***!
   \***********************************/
@@ -157,15 +156,15 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-__webpack_require__(/*! phaser */ 63);
+__webpack_require__(/*! phaser */ 54);
 
-const Gem_1 = __webpack_require__(/*! ./Gem */ 1080);
+const Gem_1 = __webpack_require__(/*! ./Gem */ 212);
 
 const MatchSequenceHelper_1 = __webpack_require__(/*! ./MatchSequenceHelper */ 1081);
 
-const Grid_1 = __webpack_require__(/*! ./Grid */ 1082);
+const GemFactory_1 = __webpack_require__(/*! ./GemFactory */ 1082);
 
-const Resources_1 = __webpack_require__(/*! ./Resources */ 128);
+const Grid_1 = __webpack_require__(/*! ./Grid */ 1084);
 
 const SPACING = 70;
 
@@ -205,20 +204,21 @@ class GemGrid {
       });
     };
 
-    this.repopulate = () => {
+    this.repopulate = (excludeList = []) => {
       this.grid.columns.forEach((column, cIdx) => {
         column.forEach((item, lIdx) => {
           if (!item) {
             let xBegin = cIdx * SPACING + this.x;
             let yBegin = -((column.length - lIdx) * SPACING);
-            let newItem = new Gem_1.Gem({
+            let newItem = GemFactory_1.GemFactory.getGem({
               column: cIdx,
               row: lIdx,
               scene: this.scene,
               visible: true,
               x: xBegin,
-              y: yBegin
-            });
+              y: yBegin,
+              grid: this.grid
+            }, excludeList);
             let yFinal = lIdx * SPACING + this.y;
             this.grid.setCell({
               column: cIdx,
@@ -233,7 +233,7 @@ class GemGrid {
     };
 
     this.overLappingWith = (gem, position) => {
-      let possibleMoves = this.calcPossibleMoves(gem);
+      let possibleMoves = gem.calcPossibleMoves();
 
       for (let i = 0; i < possibleMoves.length; i++) {
         let m = possibleMoves[i];
@@ -242,7 +242,7 @@ class GemGrid {
           row: possibleMoves[i].row
         });
 
-        if (overlapItem && overlapItem.type != Resources_1.Resources.badrock.name) {
+        if (overlapItem && overlapItem.type != Gem_1.GemType.badrock) {
           let width = overlapItem.sprite.width / 2 - 10;
           let height = overlapItem.sprite.height / 2 - 10;
           let xBoundary = [overlapItem.x - width, overlapItem.x + width];
@@ -316,7 +316,7 @@ class GemGrid {
             column: c,
             row: r
           });
-          let possibleMoves = this.calcPossibleMoves(gem); // check if any move will result in a match
+          let possibleMoves = gem.calcPossibleMoves(); // check if any move will result in a match
 
           for (let i = 0; i < possibleMoves.length; i++) {
             let m = possibleMoves[i];
@@ -325,7 +325,7 @@ class GemGrid {
               row: possibleMoves[i].row
             });
 
-            if (!(gem.type == Resources_1.Resources.badrock.name || swapGem.type == Resources_1.Resources.badrock.name)) {
+            if (!(gem.type == Gem_1.GemType.badrock || swapGem.type == Gem_1.GemType.badrock)) {
               let matchListGrid = [];
               this.swapPosition(gem, swapGem, false);
               this.searchSequenceOnGrid([this.grid.row(gem.row)], matchListGrid);
@@ -348,39 +348,33 @@ class GemGrid {
     };
 
     this.replaceBadrock = () => {
-      Gem_1.Gem.GENERATE_BADROCK = false;
-      this.grid.columns.forEach((column, cIdx) => {
-        column.forEach((item, lIdx) => {
-          if (item.type == Resources_1.Resources.badrock.name) {
-            item.destroy();
-            let xBegin = cIdx * SPACING + this.x;
-            let yBegin = -((column.length - lIdx) * SPACING);
-            let newItem = new Gem_1.Gem({
-              column: cIdx,
-              row: lIdx,
-              scene: this.scene,
-              visible: true,
-              x: xBegin,
-              y: yBegin
-            });
-            let yFinal = lIdx * SPACING + this.y;
-            this.grid.setCell({
-              column: cIdx,
-              row: lIdx
-            }, newItem);
-            newItem.fallTo(yFinal, newItem.row);
-          }
+      return new Promise(resolve => {
+        this.grid.columns.forEach((column, cIdx) => {
+          column.forEach((item, lIdx) => {
+            if (item.type == Gem_1.GemType.badrock) {
+              item.destroy();
+              this.grid.setCell({
+                column: cIdx,
+                row: lIdx
+              }, null);
+              setTimeout(() => {
+                this.fall();
+                this.repopulate([Gem_1.GemType.badrock]);
+              }, 500);
+            }
 
-          ;
+            ;
+          });
         });
+        setTimeout(() => {
+          resolve();
+        }, 1500);
       });
-      Gem_1.Gem.GENERATE_BADROCK = true;
     };
 
     this.disableGems = () => {
       this.grid.columns.forEach(column => {
         column.forEach(item => {
-          console.log("clock aqui");
           item.disableClick();
         });
       });
@@ -404,7 +398,7 @@ class GemGrid {
 
       if (matchItem.length) {
         matchItem[0].add(item);
-      } else if (item.type != Resources_1.Resources.badrock.name) {
+      } else if (item.type != Gem_1.GemType.badrock) {
         let newMatchItem = new MatchSequenceHelper_1.MatchSequenceHelper(item);
         matchList.push(newMatchItem);
       }
@@ -440,53 +434,6 @@ class GemGrid {
       });
     };
 
-    this.calcPossibleMoves = gem => {
-      let maxBoudaryColumns = this.grid.columns.length;
-      let maxBoudaryRows = this.grid.rows.length;
-      let moves = [];
-
-      if (gem.column - 1 > -1) {
-        //move to the left
-        moves.push({
-          column: gem.column - 1,
-          row: gem.row
-        });
-      }
-
-      ;
-
-      if (gem.column + 1 < maxBoudaryColumns) {
-        //move to the right
-        moves.push({
-          column: gem.column + 1,
-          row: gem.row
-        });
-      }
-
-      ;
-
-      if (gem.row - 1 > -1) {
-        //move to the top
-        moves.push({
-          column: gem.column,
-          row: gem.row - 1
-        });
-      }
-
-      ;
-
-      if (gem.row + 1 < maxBoudaryRows) {
-        //move to the bottom
-        moves.push({
-          column: gem.column,
-          row: gem.row + 1
-        });
-      }
-
-      ;
-      return moves;
-    };
-
     this.grid = new Grid_1.Grid({
       column: 6,
       row: 6
@@ -496,192 +443,26 @@ class GemGrid {
       let y = coordenate.row * SPACING + cObj.y;
       let column = coordenate.column;
       let row = coordenate.row;
-      let item = new Gem_1.Gem({
+      let grid = this.grid;
+      let item = GemFactory_1.GemFactory.getGem({
         column,
         row,
         scene: cObj.scene,
         visible: true,
         x,
-        y
-      });
+        y,
+        grid
+      }, [Gem_1.GemType.badrock]);
       return item;
     });
     this.x = cObj.x;
     this.y = cObj.y;
     this.scene = cObj.scene;
-    Gem_1.Gem.GENERATE_BADROCK = true;
   }
 
 }
 
 exports.GemGrid = GemGrid;
-
-/***/ }),
-
-/***/ 1080:
-/*!*******************************!*\
-  !*** ./src/components/Gem.ts ***!
-  \*******************************/
-/*! dynamic exports provided */
-/*! all exports used */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-__webpack_require__(/*! phaser */ 63);
-
-const Resources_1 = __webpack_require__(/*! ./Resources */ 128);
-
-const Events_1 = __webpack_require__(/*! ./Events */ 435);
-
-const GEM_LIST = [Resources_1.Resources.diamondBlue, Resources_1.Resources.diamondRed, Resources_1.Resources.diamondGreen, Resources_1.Resources.diamondYellow, Resources_1.Resources.badrock];
-
-class GemConstructor {}
-
-class MoveTo {}
-
-class Gem {
-  constructor(cObj) {
-    this.disabled = false;
-
-    this.moveTo = (obj, moveSprite = true) => {
-      this._x = obj.x;
-      this._y = obj.y;
-      this._row = obj.row;
-      this._column = obj.column;
-
-      if (moveSprite) {
-        this.backToGridPosition();
-      }
-
-      ;
-    };
-
-    this.fallTo = (y, row) => {
-      this._row = row;
-      this._y = y;
-      this.tween = this.scene.add.tween({
-        targets: [this.sprite],
-        ease: 'Sine.Quadratic.Out',
-        duration: 200 + y - this.sprite.y,
-        delay: 0,
-        y: {
-          getStart: () => this.sprite.y,
-          getEnd: () => y
-        }
-      });
-    };
-
-    this.backToGridPosition = () => {
-      this.tween = this.scene.add.tween({
-        targets: [this.sprite],
-        ease: 'Sine.easeInOut',
-        duration: 100 + (Math.abs(this.sprite.y - this._y) + Math.abs(this.sprite.x - this._y)) / 2,
-        delay: 0,
-        y: {
-          getStart: () => this.sprite.y,
-          getEnd: () => this._y
-        },
-        x: {
-          getStart: () => this.sprite.x,
-          getEnd: () => this._x
-        }
-      });
-    };
-
-    this.disableClick = () => {
-      /*
-          The only line really working here is the last one
-          idk why, by on mobile especially, the first 2 has no effect
-      */
-      this.sprite.setInteractive(false);
-      this.sprite.on("pointerdown", () => {});
-      this.disabled = true;
-    };
-
-    this.destroy = () => {
-      this.tween = this.scene.add.tween({
-        targets: [this.sprite],
-        ease: 'Sine.easeInOut',
-        duration: 500,
-        delay: 0,
-        alpha: {
-          getStart: () => this.sprite.alpha,
-          getEnd: () => 0
-        },
-        scaleX: {
-          getStart: () => this.sprite.scaleX,
-          getEnd: () => 0.1
-        },
-        scaleY: {
-          getStart: () => this.sprite.scaleY,
-          getEnd: () => 0.1
-        },
-        onComplete: () => {
-          this.sprite.destroy();
-        }
-      });
-    };
-
-    let type = 0;
-
-    if (Gem.GENERATE_BADROCK) {
-      type = Phaser.Math.Between(0, 4);
-
-      if (GEM_LIST[type].name == Resources_1.Resources.badrock.name) {
-        type = Phaser.Math.Between(0, 4);
-      }
-    } else {
-      type = Phaser.Math.Between(0, 3);
-    }
-
-    this.type = GEM_LIST[type].name;
-    this.sprite = cObj.scene.add.image(cObj.x, cObj.y, this.type);
-    this.sprite.visible = cObj.visible;
-    this.sprite.name;
-    this.sprite.setInteractive();
-
-    if (this.type != Resources_1.Resources.badrock.name) {
-      this.sprite.on("pointerdown", () => {
-        if (!this.disabled) {
-          this.scene.children.bringToTop(this.sprite);
-          this.scene.sys.events.emit(Events_1.Events.gemClick, this);
-        }
-      });
-    }
-
-    this._column = cObj.column;
-    this._row = cObj.row;
-    this.scene = cObj.scene;
-    this._x = cObj.x;
-    this._y = cObj.y;
-  }
-
-  get column() {
-    return this._column;
-  }
-
-  get row() {
-    return this._row;
-  }
-
-  get x() {
-    return this._x;
-  }
-
-  get y() {
-    return this._y;
-  }
-
-}
-
-Gem.GENERATE_BADROCK = false;
-exports.Gem = Gem;
 
 /***/ }),
 
@@ -741,6 +522,118 @@ exports.MatchSequenceHelper = MatchSequenceHelper;
 /***/ }),
 
 /***/ 1082:
+/*!**************************************!*\
+  !*** ./src/components/GemFactory.ts ***!
+  \**************************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+__webpack_require__(/*! phaser */ 54);
+
+const Resources_1 = __webpack_require__(/*! ./Resources */ 211);
+
+const Gem_1 = __webpack_require__(/*! ./Gem */ 212);
+
+const Badrock_1 = __webpack_require__(/*! ./Badrock */ 1083);
+
+class GemResource {}
+
+const GEM_LIST = [{
+  type: Gem_1.GemType.blue,
+  res: Resources_1.Resources.diamondBlue,
+  rare: 0
+}, {
+  type: Gem_1.GemType.red,
+  res: Resources_1.Resources.diamondRed,
+  rare: 0
+}, {
+  type: Gem_1.GemType.green,
+  res: Resources_1.Resources.diamondGreen,
+  rare: 0
+}, {
+  type: Gem_1.GemType.yellow,
+  res: Resources_1.Resources.diamondYellow,
+  rare: 0
+}, {
+  type: Gem_1.GemType.badrock,
+  res: Resources_1.Resources.badrock,
+  rare: 1
+}];
+
+class GemFactory {}
+
+GemFactory.getGem = (gemConstructor, exclude = []) => {
+  let gemList = GEM_LIST.filter(g => !exclude.some(e => e == g.type));
+  let item = GemFactory.getType(gemList);
+
+  if (item.type == Gem_1.GemType.badrock) {
+    return new Badrock_1.Badrock(Object.assign({}, gemConstructor, {
+      typeName: item.res.name,
+      type: item.type
+    }));
+  } else {
+    return new Gem_1.Gem(Object.assign({}, gemConstructor, {
+      typeName: item.res.name,
+      type: item.type
+    }));
+  }
+};
+
+GemFactory.getType = (gemList, lastType = null, iterations = 0) => {
+  let type = Phaser.Math.Between(0, gemList.length - 1);
+  let item = gemList[type];
+
+  if (item.rare == 0 || item.rare <= iterations) {
+    return item;
+  } else {
+    iterations = lastType == item.type || lastType == null ? iterations + 1 : 0;
+    return GemFactory.getType(gemList, item.type, iterations);
+  }
+};
+
+exports.GemFactory = GemFactory;
+
+/***/ }),
+
+/***/ 1083:
+/*!***********************************!*\
+  !*** ./src/components/Badrock.ts ***!
+  \***********************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const Gem_1 = __webpack_require__(/*! ./Gem */ 212);
+
+class Badrock extends Gem_1.Gem {
+  constructor(cObj) {
+    super(cObj);
+  }
+
+  setup() {}
+
+}
+
+exports.Badrock = Badrock;
+
+/***/ }),
+
+/***/ 1084:
 /*!********************************!*\
   !*** ./src/components/Grid.ts ***!
   \********************************/
@@ -839,7 +732,7 @@ exports.Grid = Grid;
 
 /***/ }),
 
-/***/ 1083:
+/***/ 1085:
 /*!*********************************!*\
   !*** ./src/components/Score.ts ***!
   \*********************************/
@@ -854,9 +747,9 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-__webpack_require__(/*! phaser */ 63);
+__webpack_require__(/*! phaser */ 54);
 
-const Resources_1 = __webpack_require__(/*! ./Resources */ 128);
+const Resources_1 = __webpack_require__(/*! ./Resources */ 211);
 
 class ScoreConstructor {}
 
@@ -889,7 +782,7 @@ exports.Score = Score;
 
 /***/ }),
 
-/***/ 128:
+/***/ 211:
 /*!*************************************!*\
   !*** ./src/components/Resources.ts ***!
   \*************************************/
@@ -904,7 +797,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-__webpack_require__(/*! phaser */ 63);
+__webpack_require__(/*! phaser */ 54);
 
 const IMAGE_PATH = "./assets/";
 
@@ -935,7 +828,221 @@ exports.Resources = Resources;
 
 /***/ }),
 
-/***/ 435:
+/***/ 212:
+/*!*******************************!*\
+  !*** ./src/components/Gem.ts ***!
+  \*******************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+__webpack_require__(/*! phaser */ 54);
+
+const Events_1 = __webpack_require__(/*! ./Events */ 436);
+
+var GemType;
+
+(function (GemType) {
+  GemType[GemType["blue"] = 0] = "blue";
+  GemType[GemType["red"] = 1] = "red";
+  GemType[GemType["green"] = 2] = "green";
+  GemType[GemType["yellow"] = 3] = "yellow";
+  GemType[GemType["badrock"] = 4] = "badrock";
+  GemType[GemType["bomb"] = 5] = "bomb";
+})(GemType = exports.GemType || (exports.GemType = {}));
+
+class GemFactoryonstructor {}
+
+exports.GemFactoryonstructor = GemFactoryonstructor;
+
+class GemConstructor extends GemFactoryonstructor {}
+
+exports.GemConstructor = GemConstructor;
+
+class MoveTo {}
+
+class Gem {
+  constructor(cObj) {
+    this.disabled = false;
+
+    this.moveTo = (obj, moveSprite = true) => {
+      this._x = obj.x;
+      this._y = obj.y;
+      this._row = obj.row;
+      this._column = obj.column;
+
+      if (moveSprite) {
+        this.backToGridPosition();
+      }
+
+      ;
+    };
+
+    this.fallTo = (y, row) => {
+      this._row = row;
+      this._y = y;
+      this.tween = this.scene.add.tween({
+        targets: [this.sprite],
+        ease: 'Sine.Quadratic.Out',
+        duration: 200 + y - this.sprite.y,
+        delay: 0,
+        y: {
+          getStart: () => this.sprite.y,
+          getEnd: () => y
+        }
+      });
+    };
+
+    this.backToGridPosition = () => {
+      this.tween = this.scene.add.tween({
+        targets: [this.sprite],
+        ease: 'Sine.easeInOut',
+        duration: 100 + (Math.abs(this.sprite.y - this._y) + Math.abs(this.sprite.x - this._y)) / 2,
+        delay: 0,
+        y: {
+          getStart: () => this.sprite.y,
+          getEnd: () => this._y
+        },
+        x: {
+          getStart: () => this.sprite.x,
+          getEnd: () => this._x
+        }
+      });
+    };
+
+    this.disableClick = () => {
+      /*
+          The only line really working here is the last one
+          idk why, but on mobile the first 2 lines have no effect
+      */
+      this.sprite.setInteractive(false);
+      this.sprite.on("pointerdown", () => {});
+      this.disabled = true;
+    };
+
+    this.destroy = () => {
+      this.tween = this.scene.add.tween({
+        targets: [this.sprite],
+        ease: 'Sine.easeInOut',
+        duration: 500,
+        delay: 0,
+        alpha: {
+          getStart: () => this.sprite.alpha,
+          getEnd: () => 0
+        },
+        scaleX: {
+          getStart: () => this.sprite.scaleX,
+          getEnd: () => 0.1
+        },
+        scaleY: {
+          getStart: () => this.sprite.scaleY,
+          getEnd: () => 0.1
+        },
+        onComplete: () => {
+          this.sprite.destroy();
+        }
+      });
+    };
+
+    this.calcPossibleMoves = () => {
+      let maxBoudaryColumns = this.grid.columns.length;
+      let maxBoudaryRows = this.grid.rows.length;
+      let moves = [];
+
+      if (this.column - 1 > -1) {
+        //move to the left
+        moves.push({
+          column: this.column - 1,
+          row: this.row
+        });
+      }
+
+      ;
+
+      if (this.column + 1 < maxBoudaryColumns) {
+        //move to the right
+        moves.push({
+          column: this.column + 1,
+          row: this.row
+        });
+      }
+
+      ;
+
+      if (this.row - 1 > -1) {
+        //move to the top
+        moves.push({
+          column: this.column,
+          row: this.row - 1
+        });
+      }
+
+      ;
+
+      if (this.row + 1 < maxBoudaryRows) {
+        //move to the bottom
+        moves.push({
+          column: this.column,
+          row: this.row + 1
+        });
+      }
+
+      ;
+      return moves;
+    };
+
+    this.type = cObj.type;
+    this.grid = cObj.grid;
+    this.sprite = cObj.scene.add.image(cObj.x, cObj.y, cObj.typeName);
+    this.sprite.visible = cObj.visible;
+    this._column = cObj.column;
+    this._row = cObj.row;
+    this.scene = cObj.scene;
+    this._x = cObj.x;
+    this._y = cObj.y;
+    this.setup();
+  }
+
+  setup() {
+    this.sprite.setInteractive();
+    this.sprite.on("pointerdown", () => {
+      if (!this.disabled) {
+        this.scene.children.bringToTop(this.sprite);
+        this.scene.sys.events.emit(Events_1.Events.gemClick, this);
+      }
+    });
+  }
+
+  get column() {
+    return this._column;
+  }
+
+  get row() {
+    return this._row;
+  }
+
+  get x() {
+    return this._x;
+  }
+
+  get y() {
+    return this._y;
+  }
+
+}
+
+exports.Gem = Gem;
+
+/***/ }),
+
+/***/ 436:
 /*!**********************************!*\
   !*** ./src/components/Events.ts ***!
   \**********************************/
@@ -957,7 +1064,7 @@ var Events;
 
 /***/ }),
 
-/***/ 436:
+/***/ 437:
 /*!***************************!*\
   !*** multi ./src/main.ts ***!
   \***************************/
@@ -965,12 +1072,12 @@ var Events;
 /*! all exports used */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(/*! /home/willian/dev/js/phaser/phaser3Typescript/src/main.ts */437);
+module.exports = __webpack_require__(/*! /home/willian/dev/js/phaser/phaser3Typescript/src/main.ts */438);
 
 
 /***/ }),
 
-/***/ 437:
+/***/ 438:
 /*!*********************!*\
   !*** ./src/main.ts ***!
   \*********************/
@@ -991,9 +1098,9 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-__webpack_require__(/*! phaser */ 63);
+__webpack_require__(/*! phaser */ 54);
 
-const PlayScene_1 = __importDefault(__webpack_require__(/*! ./scenes/PlayScene */ 1078));
+const PlayScene_1 = __importDefault(__webpack_require__(/*! ./scenes/PlayScene */ 1079));
 
 const config = {
   type: Phaser.AUTO,
@@ -1009,5 +1116,5 @@ new Phaser.Game(config);
 
 /***/ })
 
-},[436]);
+},[437]);
 //# sourceMappingURL=bundle.js.map

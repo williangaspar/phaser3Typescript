@@ -23,7 +23,7 @@ class Resources {
     public static readonly diamondGreen = new Resource("diamondGreen", IMAGE_PATH + "diamond_green.png");
     public static readonly diamondYellow = new Resource("diamondYellow", IMAGE_PATH + "diamond_yellow.png");
     public static readonly badrock = new Resource("badrock", IMAGE_PATH + "diamond_gray.png");
-    public static readonly scorePanel = new Resource("scorePanel", IMAGE_PATH + "score_panel.png")
+    public static readonly scorePanel = new Resource("scorePanel", IMAGE_PATH + "score_panel.png");
 }
 
 

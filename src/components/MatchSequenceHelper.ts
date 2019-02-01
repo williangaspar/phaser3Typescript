@@ -1,7 +1,7 @@
-import { Gem } from "./Gem";
+import { Gem, GemType } from "./Gem";
 
 export class MatchSequenceHelper {
-    public type: string;
+    public type: GemType;
     private currentList: Gem[];
     private matchList: Gem[];
     constructor(gem: Gem) {

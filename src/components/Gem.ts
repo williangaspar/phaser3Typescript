@@ -1,22 +1,24 @@
 import 'phaser';
-import { Resources } from "./Resources";
 import { Events } from "./Events";
+import { Grid, Coordenate } from './Grid';
 
-const GEM_LIST = [
-    Resources.diamondBlue,
-    Resources.diamondRed,
-    Resources.diamondGreen,
-    Resources.diamondYellow,
-    Resources.badrock,
-]
+export enum GemType {
+    blue, red, green, yellow, badrock, bomb
+}
 
-class GemConstructor {
+export class GemFactoryonstructor {
     x: number;
     y: number;
     column: number;
     row: number;
     visible: boolean;
     scene: Phaser.Scene;
+    grid: Grid<Gem>;
+}
+
+export class GemConstructor extends GemFactoryonstructor {
+    typeName: string;
+    type: GemType;
 }
 
 class MoveTo {
@@ -27,53 +29,43 @@ class MoveTo {
 }
 
 export class Gem {
-    readonly type: string;
+    readonly type: GemType;
     readonly scene: Phaser.Scene;
     readonly sprite: Phaser.GameObjects.Image;
+    private grid: Grid<Gem>;
     private _x: number;
     private _y: number;
     private _column: number;
     private _row: number;
     private disabled: boolean = false;
 
-    static GENERATE_BADROCK: boolean = false;
-
     tween: Phaser.Tweens.Tween;
 
     constructor(cObj: GemConstructor) {
-        let type = 0;
-        if (Gem.GENERATE_BADROCK) {
-            type = Phaser.Math.Between(0, 4);
-            if (GEM_LIST[type].name == Resources.badrock.name) {
-                type = Phaser.Math.Between(0, 4);
-            }
-        } else {
-            type = Phaser.Math.Between(0, 3);
-        }
+        this.type = cObj.type;
+        this.grid = cObj.grid;
 
-        this.type = GEM_LIST[type].name
-
-        this.sprite = cObj.scene.add.image(cObj.x, cObj.y, this.type);
+        this.sprite = cObj.scene.add.image(cObj.x, cObj.y, cObj.typeName);
         this.sprite.visible = cObj.visible;
-        this.sprite.name
-
-        this.sprite.setInteractive();
-
-        if (this.type != Resources.badrock.name) {
-            this.sprite.on("pointerdown", () => {
-                if (!this.disabled) {
-                    this.scene.children.bringToTop(this.sprite);
-                    this.scene.sys.events.emit(Events.gemClick, this);
-                }
-
-            });
-        }
 
         this._column = cObj.column;
         this._row = cObj.row;
         this.scene = cObj.scene;
         this._x = cObj.x;
-        this._y = cObj.y;
+        this._y = cObj.y
+
+        this.setup();
+    }
+
+    protected setup() {
+        this.sprite.setInteractive();
+        this.sprite.on("pointerdown", () => {
+            if (!this.disabled) {
+                this.scene.children.bringToTop(this.sprite);
+                this.scene.sys.events.emit(Events.gemClick, this);
+            }
+
+        });
     }
 
     get column() {
@@ -168,5 +160,29 @@ export class Gem {
                 this.sprite.destroy();
             }
         });
+    }
+
+    calcPossibleMoves = (): Coordenate[] => {
+        let maxBoudaryColumns = this.grid.columns.length;
+        let maxBoudaryRows = this.grid.rows.length;
+        let moves: Coordenate[] = [];
+
+        if (this.column - 1 > -1) { //move to the left
+            moves.push({ column: this.column - 1, row: this.row });
+        };
+
+        if (this.column + 1 < maxBoudaryColumns) { //move to the right
+            moves.push({ column: this.column + 1, row: this.row });
+        };
+
+        if (this.row - 1 > -1) { //move to the top
+            moves.push({ column: this.column, row: this.row - 1 });
+        };
+
+        if (this.row + 1 < maxBoudaryRows) { //move to the bottom
+            moves.push({ column: this.column, row: this.row + 1 });
+        };
+
+        return moves;
     }
 }

@@ -1,7 +1,7 @@
 import 'phaser';
-import { Gem } from "./Gem";
+import { Gem, GemType } from "./Gem";
 import { MatchSequenceHelper } from "./MatchSequenceHelper";
-
+import { GemFactory } from "./GemFactory";
 import { Grid, Coordenate } from "./Grid";
 import { Resources } from './Resources';
 import { Events } from './Events';
@@ -29,15 +29,14 @@ export class GemGrid {
             let y = coordenate.row * SPACING + cObj.y;
             let column = coordenate.column;
             let row = coordenate.row;
-            let item = new Gem({ column, row, scene: cObj.scene, visible: true, x, y });
+            let grid = this.grid;
+            let item = GemFactory.getGem({ column, row, scene: cObj.scene, visible: true, x, y, grid }, [GemType.badrock]);
             return item;
         })
 
         this.x = cObj.x;
         this.y = cObj.y;
         this.scene = cObj.scene;
-
-        Gem.GENERATE_BADROCK = true;
     }
 
     check = (): MatchSequenceHelper[] => {
@@ -68,13 +67,16 @@ export class GemGrid {
         });
     }
 
-    repopulate = () => {
+    repopulate = (excludeList: GemType[] = []) => {
         this.grid.columns.forEach((column, cIdx) => {
             column.forEach((item, lIdx) => {
                 if (!item) {
                     let xBegin = cIdx * SPACING + this.x;
                     let yBegin = -((column.length - lIdx) * SPACING);
-                    let newItem = new Gem({ column: cIdx, row: lIdx, scene: this.scene, visible: true, x: xBegin, y: yBegin });
+                    let newItem = GemFactory.getGem(
+                        { column: cIdx, row: lIdx, scene: this.scene, visible: true, x: xBegin, y: yBegin, grid: this.grid },
+                        excludeList
+                    );
 
                     let yFinal = lIdx * SPACING + this.y;
                     this.grid.setCell({ column: cIdx, row: lIdx }, newItem);
@@ -86,13 +88,13 @@ export class GemGrid {
     }
 
     overLappingWith = (gem: Gem, position: Phaser.Math.Vector2): Gem => {
-        let possibleMoves = this.calcPossibleMoves(gem);
+        let possibleMoves = gem.calcPossibleMoves();
 
         for (let i = 0; i < possibleMoves.length; i++) {
             let m = possibleMoves[i];
             let overlapItem = this.grid.cell({ column: m.column, row: possibleMoves[i].row });
 
-            if (overlapItem && overlapItem.type != Resources.badrock.name) {
+            if (overlapItem && overlapItem.type != GemType.badrock) {
                 let width = overlapItem.sprite.width / 2 - 10;
                 let height = overlapItem.sprite.height / 2 - 10;
 
@@ -135,7 +137,6 @@ export class GemGrid {
     }
 
     isGameOver = (): boolean => {
-
         /*
             This is not a very optimized solution since we will have a lot of
             overlapping check, but it will still been fast sice we don't have
@@ -146,14 +147,14 @@ export class GemGrid {
             for (let r = 0; r < column.length; r++) {
 
                 let gem = this.grid.cell({ column: c, row: r });
-                let possibleMoves = this.calcPossibleMoves(gem);
+                let possibleMoves = gem.calcPossibleMoves();
 
                 // check if any move will result in a match
                 for (let i = 0; i < possibleMoves.length; i++) {
                     let m = possibleMoves[i];
                     let swapGem = this.grid.cell({ column: m.column, row: possibleMoves[i].row });
 
-                    if (!(gem.type == Resources.badrock.name || swapGem.type == Resources.badrock.name)) {
+                    if (!(gem.type == GemType.badrock || swapGem.type == GemType.badrock)) {
                         let matchListGrid: MatchSequenceHelper[] = [];
                         this.swapPosition(gem, swapGem, false);
                         this.searchSequenceOnGrid([this.grid.row(gem.row)], matchListGrid);
@@ -176,25 +177,22 @@ export class GemGrid {
     }
 
     replaceBadrock = (): Promise<any> => {
-        Gem.GENERATE_BADROCK = false;
-
         return new Promise((resolve) => {
             this.grid.columns.forEach((column, cIdx) => {
                 column.forEach((item, lIdx) => {
-                    if (item.type == Resources.badrock.name) {
+                    if (item.type == GemType.badrock) {
                         item.destroy();
                         this.grid.setCell({ column: cIdx, row: lIdx }, null);
 
                         setTimeout(() => {
                             this.fall();
-                            this.repopulate();
+                            this.repopulate([GemType.badrock]);
                         }, 500);
 
                     };
                 });
             });
             setTimeout(() => {
-                Gem.GENERATE_BADROCK = true;
                 resolve();
             }, 1500);
         });
@@ -225,7 +223,7 @@ export class GemGrid {
         if (matchItem.length) {
             matchItem[0].add(item);
         }
-        else if (item.type != Resources.badrock.name) {
+        else if (item.type != GemType.badrock) {
             let newMatchItem = new MatchSequenceHelper(item);
             matchList.push(newMatchItem);
         };
@@ -257,31 +255,6 @@ export class GemGrid {
                 }
             });
         });
-    }
-
-    private calcPossibleMoves = (gem: Gem): Coordenate[] => {
-        let maxBoudaryColumns = this.grid.columns.length;
-        let maxBoudaryRows = this.grid.rows.length;
-
-        let moves: Coordenate[] = [];
-
-        if (gem.column - 1 > -1) { //move to the left
-            moves.push({ column: gem.column - 1, row: gem.row });
-        };
-
-        if (gem.column + 1 < maxBoudaryColumns) { //move to the right
-            moves.push({ column: gem.column + 1, row: gem.row });
-        };
-
-        if (gem.row - 1 > -1) { //move to the top
-            moves.push({ column: gem.column, row: gem.row - 1 });
-        };
-
-        if (gem.row + 1 < maxBoudaryRows) { //move to the bottom
-            moves.push({ column: gem.column, row: gem.row + 1 });
-        };
-
-        return moves;
     }
 }
 
