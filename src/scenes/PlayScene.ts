@@ -60,7 +60,7 @@ class GameScene extends Phaser.Scene {
 			if (this.lifes) {
 				this.input.mouse.enabled = true;
 				this.lifes--;
-				this.grid.replaceBadrock().then(this.check);
+				this.grid.replacebedrock().then(this.check);
 			} else {
 				this.grid.disableGems();
 				let style = {

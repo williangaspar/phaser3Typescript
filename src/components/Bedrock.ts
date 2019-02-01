@@ -1,6 +1,6 @@
 import { Gem, GemConstructor } from "./Gem";
 
-export class Badrock extends Gem {
+export class Bedrock extends Gem {
     constructor(cObj: GemConstructor) {
         super(cObj);
     }

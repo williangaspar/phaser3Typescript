@@ -23,7 +23,7 @@ const Score_1 = __webpack_require__(/*! ../components/Score */ 1085);
 
 const Events_1 = __webpack_require__(/*! ../components/Events */ 436);
 
-const GemType_1 = __webpack_require__(/*! ../components/GemType */ 1087);
+const GemType_1 = __webpack_require__(/*! ../components/GemType */ 212);
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -52,7 +52,7 @@ class GameScene extends Phaser.Scene {
         if (this.lifes) {
           this.input.mouse.enabled = true;
           this.lifes--;
-          this.grid.replaceBadrock().then(this.check);
+          this.grid.replacebedrock().then(this.check);
         } else {
           this.grid.disableGems();
           let style = {
@@ -162,7 +162,7 @@ const GemFactory_1 = __webpack_require__(/*! ./GemFactory */ 1082);
 
 const Grid_1 = __webpack_require__(/*! ./Grid */ 1084);
 
-const GemType_1 = __webpack_require__(/*! ./GemType */ 1087);
+const GemType_1 = __webpack_require__(/*! ./GemType */ 212);
 
 const SPACING = 70;
 
@@ -240,7 +240,7 @@ class GemGrid {
           row: possibleMoves[i].row
         });
 
-        if (overlapItem && overlapItem.type != GemType_1.GemType.badrock) {
+        if (overlapItem && overlapItem.type != GemType_1.GemType.bedrock) {
           let width = overlapItem.sprite.width / 2 - 10;
           let height = overlapItem.sprite.height / 2 - 10;
           let xBoundary = [overlapItem.x - width, overlapItem.x + width];
@@ -323,7 +323,7 @@ class GemGrid {
               row: possibleMoves[i].row
             });
 
-            if (!(gem.type == GemType_1.GemType.badrock || swapGem.type == GemType_1.GemType.badrock)) {
+            if (!(gem.type == GemType_1.GemType.bedrock || swapGem.type == GemType_1.GemType.bedrock)) {
               let matchListGrid = [];
               this.swapPosition(gem, swapGem, false);
               this.searchSequenceOnGrid([this.grid.row(gem.row)], matchListGrid);
@@ -345,11 +345,11 @@ class GemGrid {
       return true;
     };
 
-    this.replaceBadrock = () => {
+    this.replacebedrock = () => {
       return new Promise(resolve => {
         this.grid.columns.forEach((column, cIdx) => {
           column.forEach((item, lIdx) => {
-            if (item.type == GemType_1.GemType.badrock) {
+            if (item.type == GemType_1.GemType.bedrock) {
               item.destroy();
               this.grid.setCell({
                 column: cIdx,
@@ -357,7 +357,7 @@ class GemGrid {
               }, null);
               setTimeout(() => {
                 this.fall();
-                this.repopulate([GemType_1.GemType.badrock]);
+                this.repopulate([GemType_1.GemType.bedrock]);
               }, 500);
             }
 
@@ -396,7 +396,7 @@ class GemGrid {
 
       if (matchItem.length) {
         matchItem[0].add(item);
-      } else if (item.type != GemType_1.GemType.badrock) {
+      } else if (item.type != GemType_1.GemType.bedrock) {
         let newMatchItem = new MatchSequenceHelper_1.MatchSequenceHelper(item);
         matchList.push(newMatchItem);
       }
@@ -450,7 +450,7 @@ class GemGrid {
         x,
         y,
         grid
-      }, [GemType_1.GemType.badrock]);
+      }, [GemType_1.GemType.bedrock]);
       return item;
     });
     this.x = cObj.x;
@@ -536,11 +536,11 @@ Object.defineProperty(exports, "__esModule", {
 
 __webpack_require__(/*! phaser */ 54);
 
-const Gem_1 = __webpack_require__(/*! ./Gem */ 212);
+const Gem_1 = __webpack_require__(/*! ./Gem */ 1083);
 
-const Badrock_1 = __webpack_require__(/*! ./Badrock */ 1083);
+const Bedrock_1 = __webpack_require__(/*! ./Bedrock */ 1087);
 
-const GemType_1 = __webpack_require__(/*! ./GemType */ 1087);
+const GemType_1 = __webpack_require__(/*! ./GemType */ 212);
 
 class GemFactory {}
 
@@ -548,8 +548,8 @@ GemFactory.getGem = (gemConstructor, exclude = []) => {
   let gemList = GemType_1.GEM_LIST.filter(g => !exclude.some(e => e == g.type));
   let item = GemFactory.getType(gemList);
 
-  if (item.type == GemType_1.GemType.badrock) {
-    return new Badrock_1.Badrock(Object.assign({}, gemConstructor, {
+  if (item.type == GemType_1.GemType.bedrock) {
+    return new Bedrock_1.Bedrock(Object.assign({}, gemConstructor, {
       typeName: item.res.name,
       type: item.type
     }));
@@ -578,285 +578,6 @@ exports.GemFactory = GemFactory;
 /***/ }),
 
 /***/ 1083:
-/*!***********************************!*\
-  !*** ./src/components/Badrock.ts ***!
-  \***********************************/
-/*! dynamic exports provided */
-/*! all exports used */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const Gem_1 = __webpack_require__(/*! ./Gem */ 212);
-
-class Badrock extends Gem_1.Gem {
-  constructor(cObj) {
-    super(cObj);
-  }
-
-  setup() {}
-
-}
-
-exports.Badrock = Badrock;
-
-/***/ }),
-
-/***/ 1084:
-/*!********************************!*\
-  !*** ./src/components/Grid.ts ***!
-  \********************************/
-/*! dynamic exports provided */
-/*! all exports used */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-class Coordenate {}
-
-exports.Coordenate = Coordenate;
-
-class Grid {
-  constructor(coordenate) {
-    this.populate = fillFunction => {
-      for (let c = 0; c < this.numberOfColumns; c++) {
-        for (let l = 0; l < this.numberOfRows; l++) {
-          let item = fillFunction({
-            column: c,
-            row: l
-          });
-          this._columns[c][l] = item;
-        }
-      }
-
-      for (let l = 0; l < this.numberOfColumns; l++) {
-        for (let c = 0; c < this.numberOfRows; c++) {
-          this._row[l][c] = this._columns[c][l];
-        }
-      }
-    };
-
-    this.row = index => {
-      return this._row[index];
-    };
-
-    this.column = index => {
-      return this._columns[index];
-    };
-
-    this.cell = coordenate => {
-      return this._columns[coordenate.column][coordenate.row];
-    };
-
-    this.setCell = (coordenate, value) => {
-      this._columns[coordenate.column][coordenate.row] = value;
-      this._row[coordenate.row][coordenate.column] = value;
-    };
-
-    this.sort = func => {
-      this._columns.forEach(column => {
-        column.sort(func);
-      });
-
-      for (let l = 0; l < this.numberOfColumns; l++) {
-        for (let c = 0; c < this.numberOfRows; c++) {
-          this._row[l][c] = this._columns[c][l];
-        }
-      }
-    };
-
-    this.createEmptyList = size => {
-      let list = [];
-
-      for (let i = 0; i < size; i++) {
-        list.push([]);
-      }
-
-      ;
-      return list;
-    };
-
-    this.numberOfColumns = coordenate.column;
-    this.numberOfRows = coordenate.row;
-    this._columns = this.createEmptyList(this.numberOfColumns);
-    this._row = this.createEmptyList(this.numberOfRows);
-  }
-
-  get rows() {
-    return this._row.map(e => e.map(g => g));
-  }
-
-  get columns() {
-    return this._columns.map(e => e.map(g => g));
-  }
-
-}
-
-exports.Grid = Grid;
-
-/***/ }),
-
-/***/ 1085:
-/*!*********************************!*\
-  !*** ./src/components/Score.ts ***!
-  \*********************************/
-/*! dynamic exports provided */
-/*! all exports used */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-__webpack_require__(/*! phaser */ 54);
-
-const Resources_1 = __webpack_require__(/*! ./Resources */ 211);
-
-class ScoreConstructor {}
-
-class Score {
-  constructor(cObj) {
-    this.inc = value => {
-      this.score += value;
-      this.text.setText("SCORE: " + ("000000" + this.score).slice(-6));
-    };
-
-    this.score = 0;
-    this.x = cObj.x;
-    this.y = cObj.y;
-    this.scene = cObj.scene;
-    this.panel = cObj.scene.add.image(cObj.x, cObj.y, Resources_1.Resources.scorePanel.name);
-    let style = {
-      font: "bold 40px Courier",
-      fill: "#fff",
-      boundsAlignH: "center",
-      boundsAlignV: "middle",
-      stroke: '#000000',
-      strokeThickness: 2
-    };
-    this.text = cObj.scene.add.text(cObj.x - 160, cObj.y - 20, "SCORE: 000000", style);
-  }
-
-}
-
-exports.Score = Score;
-
-/***/ }),
-
-/***/ 1087:
-/*!***********************************!*\
-  !*** ./src/components/GemType.ts ***!
-  \***********************************/
-/*! dynamic exports provided */
-/*! all exports used */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const Resources_1 = __webpack_require__(/*! ./Resources */ 211);
-
-var GemType;
-
-(function (GemType) {
-  GemType[GemType["blue"] = 0] = "blue";
-  GemType[GemType["red"] = 1] = "red";
-  GemType[GemType["green"] = 2] = "green";
-  GemType[GemType["yellow"] = 3] = "yellow";
-  GemType[GemType["badrock"] = 4] = "badrock";
-})(GemType = exports.GemType || (exports.GemType = {}));
-
-class GemResource {}
-
-exports.GemResource = GemResource;
-exports.GEM_LIST = [{
-  type: GemType.blue,
-  res: Resources_1.Resources.diamondBlue,
-  rare: 0
-}, {
-  type: GemType.red,
-  res: Resources_1.Resources.diamondRed,
-  rare: 0
-}, {
-  type: GemType.green,
-  res: Resources_1.Resources.diamondGreen,
-  rare: 0
-}, {
-  type: GemType.yellow,
-  res: Resources_1.Resources.diamondYellow,
-  rare: 0
-}, {
-  type: GemType.badrock,
-  res: Resources_1.Resources.badrock,
-  rare: 1
-}];
-
-/***/ }),
-
-/***/ 211:
-/*!*************************************!*\
-  !*** ./src/components/Resources.ts ***!
-  \*************************************/
-/*! dynamic exports provided */
-/*! all exports used */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-__webpack_require__(/*! phaser */ 54);
-
-const IMAGE_PATH = "./assets/";
-
-class Resource {
-  constructor(name, url) {
-    this.name = name;
-    this.url = url;
-  }
-
-}
-
-exports.Resource = Resource;
-
-class Resources {}
-
-Resources.load = (scene, res) => {
-  scene.load.image(res.name, res.url);
-};
-
-Resources.background = new Resource("background", IMAGE_PATH + "background.png");
-Resources.diamondBlue = new Resource("diamondBlue", IMAGE_PATH + "diamond_blue.png");
-Resources.diamondRed = new Resource("diamondRed", IMAGE_PATH + "diamond_red.png");
-Resources.diamondGreen = new Resource("diamondGreen", IMAGE_PATH + "diamond_green.png");
-Resources.diamondYellow = new Resource("diamondYellow", IMAGE_PATH + "diamond_yellow.png");
-Resources.badrock = new Resource("badrock", IMAGE_PATH + "diamond_gray.png");
-Resources.scorePanel = new Resource("scorePanel", IMAGE_PATH + "score_panel.png");
-exports.Resources = Resources;
-
-/***/ }),
-
-/***/ 212:
 /*!*******************************!*\
   !*** ./src/components/Gem.ts ***!
   \*******************************/
@@ -1056,6 +777,285 @@ class Gem {
 }
 
 exports.Gem = Gem;
+
+/***/ }),
+
+/***/ 1084:
+/*!********************************!*\
+  !*** ./src/components/Grid.ts ***!
+  \********************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+class Coordenate {}
+
+exports.Coordenate = Coordenate;
+
+class Grid {
+  constructor(coordenate) {
+    this.populate = fillFunction => {
+      for (let c = 0; c < this.numberOfColumns; c++) {
+        for (let l = 0; l < this.numberOfRows; l++) {
+          let item = fillFunction({
+            column: c,
+            row: l
+          });
+          this._columns[c][l] = item;
+        }
+      }
+
+      for (let l = 0; l < this.numberOfColumns; l++) {
+        for (let c = 0; c < this.numberOfRows; c++) {
+          this._row[l][c] = this._columns[c][l];
+        }
+      }
+    };
+
+    this.row = index => {
+      return this._row[index];
+    };
+
+    this.column = index => {
+      return this._columns[index];
+    };
+
+    this.cell = coordenate => {
+      return this._columns[coordenate.column][coordenate.row];
+    };
+
+    this.setCell = (coordenate, value) => {
+      this._columns[coordenate.column][coordenate.row] = value;
+      this._row[coordenate.row][coordenate.column] = value;
+    };
+
+    this.sort = func => {
+      this._columns.forEach(column => {
+        column.sort(func);
+      });
+
+      for (let l = 0; l < this.numberOfColumns; l++) {
+        for (let c = 0; c < this.numberOfRows; c++) {
+          this._row[l][c] = this._columns[c][l];
+        }
+      }
+    };
+
+    this.createEmptyList = size => {
+      let list = [];
+
+      for (let i = 0; i < size; i++) {
+        list.push([]);
+      }
+
+      ;
+      return list;
+    };
+
+    this.numberOfColumns = coordenate.column;
+    this.numberOfRows = coordenate.row;
+    this._columns = this.createEmptyList(this.numberOfColumns);
+    this._row = this.createEmptyList(this.numberOfRows);
+  }
+
+  get rows() {
+    return this._row.map(e => e.map(g => g));
+  }
+
+  get columns() {
+    return this._columns.map(e => e.map(g => g));
+  }
+
+}
+
+exports.Grid = Grid;
+
+/***/ }),
+
+/***/ 1085:
+/*!*********************************!*\
+  !*** ./src/components/Score.ts ***!
+  \*********************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+__webpack_require__(/*! phaser */ 54);
+
+const Resources_1 = __webpack_require__(/*! ./Resources */ 211);
+
+class ScoreConstructor {}
+
+class Score {
+  constructor(cObj) {
+    this.inc = value => {
+      this.score += value;
+      this.text.setText("SCORE: " + ("000000" + this.score).slice(-6));
+    };
+
+    this.score = 0;
+    this.x = cObj.x;
+    this.y = cObj.y;
+    this.scene = cObj.scene;
+    this.panel = cObj.scene.add.image(cObj.x, cObj.y, Resources_1.Resources.scorePanel.name);
+    let style = {
+      font: "bold 40px Courier",
+      fill: "#fff",
+      boundsAlignH: "center",
+      boundsAlignV: "middle",
+      stroke: '#000000',
+      strokeThickness: 2
+    };
+    this.text = cObj.scene.add.text(cObj.x - 160, cObj.y - 20, "SCORE: 000000", style);
+  }
+
+}
+
+exports.Score = Score;
+
+/***/ }),
+
+/***/ 1087:
+/*!***********************************!*\
+  !*** ./src/components/Bedrock.ts ***!
+  \***********************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const Gem_1 = __webpack_require__(/*! ./Gem */ 1083);
+
+class Bedrock extends Gem_1.Gem {
+  constructor(cObj) {
+    super(cObj);
+  }
+
+  setup() {}
+
+}
+
+exports.Bedrock = Bedrock;
+
+/***/ }),
+
+/***/ 211:
+/*!*************************************!*\
+  !*** ./src/components/Resources.ts ***!
+  \*************************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+__webpack_require__(/*! phaser */ 54);
+
+const IMAGE_PATH = "./assets/";
+
+class Resource {
+  constructor(name, url) {
+    this.name = name;
+    this.url = url;
+  }
+
+}
+
+exports.Resource = Resource;
+
+class Resources {}
+
+Resources.load = (scene, res) => {
+  scene.load.image(res.name, res.url);
+};
+
+Resources.background = new Resource("background", IMAGE_PATH + "background.png");
+Resources.diamondBlue = new Resource("diamondBlue", IMAGE_PATH + "diamond_blue.png");
+Resources.diamondRed = new Resource("diamondRed", IMAGE_PATH + "diamond_red.png");
+Resources.diamondGreen = new Resource("diamondGreen", IMAGE_PATH + "diamond_green.png");
+Resources.diamondYellow = new Resource("diamondYellow", IMAGE_PATH + "diamond_yellow.png");
+Resources.bedrock = new Resource("bedrock", IMAGE_PATH + "diamond_gray.png");
+Resources.scorePanel = new Resource("scorePanel", IMAGE_PATH + "score_panel.png");
+exports.Resources = Resources;
+
+/***/ }),
+
+/***/ 212:
+/*!***********************************!*\
+  !*** ./src/components/GemType.ts ***!
+  \***********************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const Resources_1 = __webpack_require__(/*! ./Resources */ 211);
+
+var GemType;
+
+(function (GemType) {
+  GemType[GemType["blue"] = 0] = "blue";
+  GemType[GemType["red"] = 1] = "red";
+  GemType[GemType["green"] = 2] = "green";
+  GemType[GemType["yellow"] = 3] = "yellow";
+  GemType[GemType["bedrock"] = 4] = "bedrock";
+})(GemType = exports.GemType || (exports.GemType = {}));
+
+class GemResource {}
+
+exports.GemResource = GemResource;
+exports.GEM_LIST = [{
+  type: GemType.blue,
+  res: Resources_1.Resources.diamondBlue,
+  rare: 0
+}, {
+  type: GemType.red,
+  res: Resources_1.Resources.diamondRed,
+  rare: 0
+}, {
+  type: GemType.green,
+  res: Resources_1.Resources.diamondGreen,
+  rare: 0
+}, {
+  type: GemType.yellow,
+  res: Resources_1.Resources.diamondYellow,
+  rare: 0
+}, {
+  type: GemType.bedrock,
+  res: Resources_1.Resources.bedrock,
+  rare: 1
+}];
 
 /***/ }),
 

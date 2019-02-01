@@ -29,7 +29,7 @@ export class GemGrid {
             let column = coordenate.column;
             let row = coordenate.row;
             let grid = this.grid;
-            let item = GemFactory.getGem({ column, row, scene: cObj.scene, visible: true, x, y, grid }, [GemType.badrock]);
+            let item = GemFactory.getGem({ column, row, scene: cObj.scene, visible: true, x, y, grid }, [GemType.bedrock]);
             return item;
         })
 
@@ -93,7 +93,7 @@ export class GemGrid {
             let m = possibleMoves[i];
             let overlapItem = this.grid.cell({ column: m.column, row: possibleMoves[i].row });
 
-            if (overlapItem && overlapItem.type != GemType.badrock) {
+            if (overlapItem && overlapItem.type != GemType.bedrock) {
                 let width = overlapItem.sprite.width / 2 - 10;
                 let height = overlapItem.sprite.height / 2 - 10;
 
@@ -153,7 +153,7 @@ export class GemGrid {
                     let m = possibleMoves[i];
                     let swapGem = this.grid.cell({ column: m.column, row: possibleMoves[i].row });
 
-                    if (!(gem.type == GemType.badrock || swapGem.type == GemType.badrock)) {
+                    if (!(gem.type == GemType.bedrock || swapGem.type == GemType.bedrock)) {
                         let matchListGrid: MatchSequenceHelper[] = [];
                         this.swapPosition(gem, swapGem, false);
                         this.searchSequenceOnGrid([this.grid.row(gem.row)], matchListGrid);
@@ -175,17 +175,17 @@ export class GemGrid {
 
     }
 
-    replaceBadrock = (): Promise<any> => {
+    replacebedrock = (): Promise<any> => {
         return new Promise((resolve) => {
             this.grid.columns.forEach((column, cIdx) => {
                 column.forEach((item, lIdx) => {
-                    if (item.type == GemType.badrock) {
+                    if (item.type == GemType.bedrock) {
                         item.destroy();
                         this.grid.setCell({ column: cIdx, row: lIdx }, null);
 
                         setTimeout(() => {
                             this.fall();
-                            this.repopulate([GemType.badrock]);
+                            this.repopulate([GemType.bedrock]);
                         }, 500);
 
                     };
@@ -222,7 +222,7 @@ export class GemGrid {
         if (matchItem.length) {
             matchItem[0].add(item);
         }
-        else if (item.type != GemType.badrock) {
+        else if (item.type != GemType.bedrock) {
             let newMatchItem = new MatchSequenceHelper(item);
             matchList.push(newMatchItem);
         };

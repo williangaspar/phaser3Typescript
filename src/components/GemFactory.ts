@@ -1,6 +1,6 @@
 import "phaser";
 import { Gem, GemFactoryonstructor } from "./Gem";
-import { Badrock } from "./Badrock";
+import { Bedrock } from "./Bedrock";
 import { GemResource, GEM_LIST, GemType} from "./GemType";
 
 export class GemFactory {
@@ -8,8 +8,8 @@ export class GemFactory {
         let gemList = GEM_LIST.filter((g) => !exclude.some(e => e == g.type));
         let item = GemFactory.getType(gemList);
 
-        if (item.type == GemType.badrock) {
-            return new Badrock({ ...gemConstructor, typeName: item.res.name, type: item.type });
+        if (item.type == GemType.bedrock) {
+            return new Bedrock({ ...gemConstructor, typeName: item.res.name, type: item.type });
         } else {
             return new Gem({ ...gemConstructor, typeName: item.res.name, type: item.type });
         }
