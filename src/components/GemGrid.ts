@@ -2,7 +2,7 @@ import "phaser";
 import { Gem } from "./Gem";
 import { MatchSequenceHelper } from "./MatchSequenceHelper";
 import { GemFactory } from "./GemFactory";
-import { Grid, Coordenate } from "./Grid";
+import { Grid, Coordenate, Cell } from "./Grid";
 import { GemType } from './GemType';
 
 const SPACING = 70;
@@ -49,13 +49,11 @@ export class GemGrid {
         matchList.forEach(matchItem => {
             let gemList = matchItem.list;
             gemList.forEach(gem => {
-                let coordenate = gem.cell;
-
-                if (this.grid.cell(coordenate) != null) {
+                if (this.grid.cell(gem.cell).item != null) {
                     gem.destroy();
                 };
 
-                this.grid.setCell(coordenate, null);
+                this.grid.setCell(gem.cell, null);
             });
         });
 
@@ -65,23 +63,21 @@ export class GemGrid {
     }
 
     repopulate = (excludeList: GemType[] = []) => {
-        this.grid.columns.forEach((column, cIdx) => {
-            column.forEach((item, lIdx) => {
-                if (!item) {
-                    let xBegin = cIdx * SPACING + this.x;
-                    let yBegin = -((column.length - lIdx) * SPACING);
-                    let cell = { column: cIdx, row: lIdx };
-                    let newItem = GemFactory.getGem(
-                        { cell, scene: this.scene, visible: true, x: xBegin, y: yBegin, grid: this.grid },
-                        excludeList
-                    );
+        this.grid.all().forEach((cell) => {
+            if (!cell.item) {
+                let xBegin = cell.column * SPACING + this.x;
+                let yBegin = -((this.grid.numberOfRows - cell.row) * SPACING);
 
-                    let yFinal = lIdx * SPACING + this.y;
-                    this.grid.setCell({ column: cIdx, row: lIdx }, newItem);
+                let newItem = GemFactory.getGem(
+                    { cell, scene: this.scene, visible: true, x: xBegin, y: yBegin, grid: this.grid },
+                    excludeList
+                );
 
-                    newItem.fallTo(yFinal, newItem.cell.row);
-                };
-            });
+                let yFinal = cell.row * SPACING + this.y;
+                this.grid.setCell(cell, newItem);
+
+                newItem.fallTo(yFinal, newItem.cell.row);
+            };
         });
     }
 
@@ -89,8 +85,7 @@ export class GemGrid {
         let possibleMoves = gem.calcPossibleMoves();
 
         for (let i = 0; i < possibleMoves.length; i++) {
-            let m = possibleMoves[i];
-            let overlapItem = this.grid.cell({ column: m.column, row: possibleMoves[i].row });
+            let overlapItem = this.grid.cell(possibleMoves[i]).item;
 
             if (overlapItem && overlapItem.stackable) {
                 let width = overlapItem.sprite.width / 2 - 10;
@@ -136,60 +131,56 @@ export class GemGrid {
             overlapping check, but it will still been fast sice we don't have
             that many columns and rows
          */
-        for (let c = 0; c < this.grid.columns.length; c++) {
-            let column = this.grid.columns[c];
-            for (let r = 0; r < column.length; r++) {
+        let cells = this.grid.all();
+        for (let g = 0; g < cells.length; g++) {
+            let cell = cells[g];
+            let gem = cell.item;
+            let possibleMoves = gem.calcPossibleMoves();
 
-                let gem = this.grid.cell({ column: c, row: r });
-                let possibleMoves = gem.calcPossibleMoves();
+            // check if any move will result in a match
+            for (let i = 0; i < possibleMoves.length; i++) {
+                let swapGem = this.grid.cell(possibleMoves[i]).item;
 
-                // check if any move will result in a match
-                for (let i = 0; i < possibleMoves.length; i++) {
-                    let m = possibleMoves[i];
-                    let swapGem = this.grid.cell({ column: m.column, row: m.row });
+                if (swapGem.type == GemType.bomb) {
+                    return false;
+                }
 
-                    if (swapGem.type == GemType.bomb) {
+                if (gem.stackable && swapGem.stackable) {
+                    let matchListGrid: MatchSequenceHelper[] = [];
+                    this.swapPosition(gem, swapGem, false);
+                    this.searchSequenceOnGrid([this.grid.row(cell.row)], matchListGrid);
+                    this.searchSequenceOnGrid([this.grid.column(cell.column)], matchListGrid);
+
+                    if (matchListGrid.length) {
+                        // if yes, just go on.
+                        this.swapPosition(gem, swapGem);
                         return false;
                     }
 
-                    if (gem.stackable && swapGem.stackable) {
-                        let matchListGrid: MatchSequenceHelper[] = [];
-                        this.swapPosition(gem, swapGem, false);
-                        this.searchSequenceOnGrid([this.grid.row(gem.cell.row)], matchListGrid);
-                        this.searchSequenceOnGrid([this.grid.column(gem.cell.column)], matchListGrid);
-
-                        if (matchListGrid.length) {
-                            // if yes, just go on.
-                            this.swapPosition(gem, swapGem);
-                            return false;
-                        }
-                        this.swapPosition(gem, swapGem);
-                    }
+                    this.swapPosition(gem, swapGem);
                 }
-            }
-        }
+            };
+        };
 
         // if no move will result in a match, the game is over!
         return true;
-
     }
 
     replacebedrock = (): Promise<any> => {
         return new Promise((resolve) => {
-            this.grid.columns.forEach((column, cIdx) => {
-                column.forEach((item, lIdx) => {
-                    if (item.type == GemType.bedrock) {
-                        item.destroy();
-                        this.grid.setCell({ column: cIdx, row: lIdx }, null);
+            this.grid.all().forEach((cell) => {
+                if (cell.item.type == GemType.bedrock) {
+                    cell.item.destroy();
+                    this.grid.setCell(cell, null);
 
-                        setTimeout(() => {
-                            this.fall();
-                            this.repopulate([GemType.bedrock]);
-                        }, 500);
+                    setTimeout(() => {
+                        this.fall();
+                        this.repopulate([GemType.bedrock]);
+                    }, 500);
 
-                    };
-                });
+                };
             });
+
             setTimeout(() => {
                 resolve();
             }, 1500);
@@ -197,30 +188,26 @@ export class GemGrid {
     }
 
     disableGems = () => {
-        this.grid.columns.forEach((column) => {
-            column.forEach((item) => {
-                item.disableClick();
-            });
+        this.grid.all().forEach((cell) => {
+            cell.item.disableClick();
         });
     }
 
     fall = () => {
-        this.grid.sort((a: Gem, b: Gem) => {
-            let aValue = a ? 1 : -1;
-            let bValue = b ? 1 : -1;
+        this.grid.sortColumnByItem((a: Cell<Gem>, b: Cell<Gem>) => {
+            let aValue = a.item ? 1 : -1;
+            let bValue = b.item ? 1 : -1;
             return aValue - bValue;
         });
 
-        this.grid.columns.forEach((column) => {
-            column.forEach((item, index) => {
-                if (item) {
-                    item.fallTo(index * SPACING + this.y, index);
-                }
-            });
+        this.grid.all().forEach((cell) => {
+            if (cell.item) {
+                cell.item.fallTo(cell.row * SPACING + this.y, cell.row);
+            };
         });
     }
 
-    private searchSequenceOnGrid = (grid: Gem[][], matchListGrid: MatchSequenceHelper[]) => {
+    private searchSequenceOnGrid = (grid: Cell<Gem>[][], matchListGrid: MatchSequenceHelper[]) => {
         grid.forEach((e) => {
             let matchList: MatchSequenceHelper[] = this.searchSequenceOnList(e, 0, []);
 
@@ -230,8 +217,8 @@ export class GemGrid {
         });
     }
 
-    private searchSequenceOnList = (list: Gem[], index: number, matchList: MatchSequenceHelper[]): MatchSequenceHelper[] => {
-        let item = list[index];
+    private searchSequenceOnList = (list: Cell<Gem>[], index: number, matchList: MatchSequenceHelper[]): MatchSequenceHelper[] => {
+        let item = list[index].item;
         let matchItem = matchList.filter(e => e.type == item.type);
 
         if (matchItem.length) {

@@ -189,14 +189,12 @@ class GemGrid {
       matchList.forEach(matchItem => {
         let gemList = matchItem.list;
         gemList.forEach(gem => {
-          let coordenate = gem.cell;
-
-          if (this.grid.cell(coordenate) != null) {
+          if (this.grid.cell(gem.cell).item != null) {
             gem.destroy();
           }
 
           ;
-          this.grid.setCell(coordenate, null);
+          this.grid.setCell(gem.cell, null);
         });
       });
       return new Promise(resolve => {
@@ -208,33 +206,24 @@ class GemGrid {
     };
 
     this.repopulate = (excludeList = []) => {
-      this.grid.columns.forEach((column, cIdx) => {
-        column.forEach((item, lIdx) => {
-          if (!item) {
-            let xBegin = cIdx * SPACING + this.x;
-            let yBegin = -((column.length - lIdx) * SPACING);
-            let cell = {
-              column: cIdx,
-              row: lIdx
-            };
-            let newItem = GemFactory_1.GemFactory.getGem({
-              cell,
-              scene: this.scene,
-              visible: true,
-              x: xBegin,
-              y: yBegin,
-              grid: this.grid
-            }, excludeList);
-            let yFinal = lIdx * SPACING + this.y;
-            this.grid.setCell({
-              column: cIdx,
-              row: lIdx
-            }, newItem);
-            newItem.fallTo(yFinal, newItem.cell.row);
-          }
+      this.grid.all().forEach(cell => {
+        if (!cell.item) {
+          let xBegin = cell.column * SPACING + this.x;
+          let yBegin = -((this.grid.numberOfRows - cell.row) * SPACING);
+          let newItem = GemFactory_1.GemFactory.getGem({
+            cell,
+            scene: this.scene,
+            visible: true,
+            x: xBegin,
+            y: yBegin,
+            grid: this.grid
+          }, excludeList);
+          let yFinal = cell.row * SPACING + this.y;
+          this.grid.setCell(cell, newItem);
+          newItem.fallTo(yFinal, newItem.cell.row);
+        }
 
-          ;
-        });
+        ;
       });
     };
 
@@ -242,11 +231,7 @@ class GemGrid {
       let possibleMoves = gem.calcPossibleMoves();
 
       for (let i = 0; i < possibleMoves.length; i++) {
-        let m = possibleMoves[i];
-        let overlapItem = this.grid.cell({
-          column: m.column,
-          row: possibleMoves[i].row
-        });
+        let overlapItem = this.grid.cell(possibleMoves[i]).item;
 
         if (overlapItem && overlapItem.stackable) {
           let width = overlapItem.sprite.width / 2 - 10;
@@ -302,67 +287,57 @@ class GemGrid {
           overlapping check, but it will still been fast sice we don't have
           that many columns and rows
        */
-      for (let c = 0; c < this.grid.columns.length; c++) {
-        let column = this.grid.columns[c];
+      let cells = this.grid.all();
 
-        for (let r = 0; r < column.length; r++) {
-          let gem = this.grid.cell({
-            column: c,
-            row: r
-          });
-          let possibleMoves = gem.calcPossibleMoves(); // check if any move will result in a match
+      for (let g = 0; g < cells.length; g++) {
+        let cell = cells[g];
+        let gem = cell.item;
+        let possibleMoves = gem.calcPossibleMoves(); // check if any move will result in a match
 
-          for (let i = 0; i < possibleMoves.length; i++) {
-            let m = possibleMoves[i];
-            let swapGem = this.grid.cell({
-              column: m.column,
-              row: m.row
-            });
+        for (let i = 0; i < possibleMoves.length; i++) {
+          let swapGem = this.grid.cell(possibleMoves[i]).item;
 
-            if (swapGem.type == GemType_1.GemType.bomb) {
+          if (swapGem.type == GemType_1.GemType.bomb) {
+            return false;
+          }
+
+          if (gem.stackable && swapGem.stackable) {
+            let matchListGrid = [];
+            this.swapPosition(gem, swapGem, false);
+            this.searchSequenceOnGrid([this.grid.row(cell.row)], matchListGrid);
+            this.searchSequenceOnGrid([this.grid.column(cell.column)], matchListGrid);
+
+            if (matchListGrid.length) {
+              // if yes, just go on.
+              this.swapPosition(gem, swapGem);
               return false;
             }
 
-            if (gem.stackable && swapGem.stackable) {
-              let matchListGrid = [];
-              this.swapPosition(gem, swapGem, false);
-              this.searchSequenceOnGrid([this.grid.row(gem.cell.row)], matchListGrid);
-              this.searchSequenceOnGrid([this.grid.column(gem.cell.column)], matchListGrid);
-
-              if (matchListGrid.length) {
-                // if yes, just go on.
-                this.swapPosition(gem, swapGem);
-                return false;
-              }
-
-              this.swapPosition(gem, swapGem);
-            }
+            this.swapPosition(gem, swapGem);
           }
         }
-      } // if no move will result in a match, the game is over!
 
+        ;
+      }
+
+      ; // if no move will result in a match, the game is over!
 
       return true;
     };
 
     this.replacebedrock = () => {
       return new Promise(resolve => {
-        this.grid.columns.forEach((column, cIdx) => {
-          column.forEach((item, lIdx) => {
-            if (item.type == GemType_1.GemType.bedrock) {
-              item.destroy();
-              this.grid.setCell({
-                column: cIdx,
-                row: lIdx
-              }, null);
-              setTimeout(() => {
-                this.fall();
-                this.repopulate([GemType_1.GemType.bedrock]);
-              }, 500);
-            }
+        this.grid.all().forEach(cell => {
+          if (cell.item.type == GemType_1.GemType.bedrock) {
+            cell.item.destroy();
+            this.grid.setCell(cell, null);
+            setTimeout(() => {
+              this.fall();
+              this.repopulate([GemType_1.GemType.bedrock]);
+            }, 500);
+          }
 
-            ;
-          });
+          ;
         });
         setTimeout(() => {
           resolve();
@@ -371,25 +346,23 @@ class GemGrid {
     };
 
     this.disableGems = () => {
-      this.grid.columns.forEach(column => {
-        column.forEach(item => {
-          item.disableClick();
-        });
+      this.grid.all().forEach(cell => {
+        cell.item.disableClick();
       });
     };
 
     this.fall = () => {
-      this.grid.sort((a, b) => {
-        let aValue = a ? 1 : -1;
-        let bValue = b ? 1 : -1;
+      this.grid.sortColumnByItem((a, b) => {
+        let aValue = a.item ? 1 : -1;
+        let bValue = b.item ? 1 : -1;
         return aValue - bValue;
       });
-      this.grid.columns.forEach(column => {
-        column.forEach((item, index) => {
-          if (item) {
-            item.fallTo(index * SPACING + this.y, index);
-          }
-        });
+      this.grid.all().forEach(cell => {
+        if (cell.item) {
+          cell.item.fallTo(cell.row * SPACING + this.y, cell.row);
+        }
+
+        ;
       });
     };
 
@@ -406,7 +379,7 @@ class GemGrid {
     };
 
     this.searchSequenceOnList = (list, index, matchList) => {
-      let item = list[index];
+      let item = list[index].item;
       let matchItem = matchList.filter(e => e.type == item.type);
 
       if (matchItem.length) {
@@ -642,7 +615,7 @@ class Bomb extends Gem_1.Gem {
         let gem = this.grid.cell({
           column: m.column,
           row: m.row
-        });
+        }).item;
         gem.destroy();
         this.grid.setCell(gem.cell, null);
       });
@@ -713,16 +686,23 @@ class Coordenate {}
 
 exports.Coordenate = Coordenate;
 
+class Cell extends Coordenate {}
+
+exports.Cell = Cell;
+
 class Grid {
   constructor(coordenate) {
     this.populate = fillFunction => {
       for (let c = 0; c < this.numberOfColumns; c++) {
         for (let l = 0; l < this.numberOfRows; l++) {
-          let item = fillFunction({
+          let coordenate = {
             column: c,
             row: l
+          };
+          let item = fillFunction(coordenate);
+          this._columns[c][l] = Object.assign({}, coordenate, {
+            item
           });
-          this._columns[c][l] = item;
         }
       }
 
@@ -745,15 +725,27 @@ class Grid {
       return this._columns[coordenate.column][coordenate.row];
     };
 
-    this.setCell = (coordenate, value) => {
-      this._columns[coordenate.column][coordenate.row] = value;
-      this._row[coordenate.row][coordenate.column] = value;
+    this.setCell = (coordenate, item) => {
+      this._columns[coordenate.column][coordenate.row].item = item;
+      this._row[coordenate.row][coordenate.column].item = item;
     };
 
-    this.sort = func => {
+    this.sortColumnByItem = func => {
       this._columns.forEach(column => {
         column.sort(func);
       });
+
+      for (let c = 0; c < this.numberOfColumns; c++) {
+        for (let l = 0; l < this.numberOfRows; l++) {
+          let coordenate = {
+            column: c,
+            row: l
+          };
+          this._columns[c][l] = Object.assign({}, coordenate, {
+            item: this._columns[c][l].item
+          });
+        }
+      }
 
       for (let l = 0; l < this.numberOfColumns; l++) {
         for (let c = 0; c < this.numberOfRows; c++) {
@@ -772,6 +764,21 @@ class Grid {
           }
 
           ;
+        }
+
+        ;
+      }
+
+      ;
+      return list;
+    };
+
+    this.all = () => {
+      let list = [];
+
+      for (let l = 0; l < this.numberOfColumns; l++) {
+        for (let c = 0; c < this.numberOfRows; c++) {
+          list.push(this._columns[c][l]);
         }
 
         ;

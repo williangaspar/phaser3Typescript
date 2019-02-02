@@ -51,7 +51,7 @@ export class Bomb extends Gem {
         let possibleMoves = this.calcPossibleMoves();
 
         possibleMoves.forEach((m) => {
-            let gem = this.grid.cell({ column: m.column, row: m.row });
+            let gem = this.grid.cell({ column: m.column, row: m.row }).item;
             gem.destroy();
             this.grid.setCell(gem.cell, null);
         });
