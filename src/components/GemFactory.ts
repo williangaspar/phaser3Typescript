@@ -1,11 +1,11 @@
 import "phaser";
-import { Gem, GemFactoryonstructor } from "./Gem";
+import { Gem, GemFactoryConstructor } from "./Gem";
 import { Bedrock } from "./Bedrock";
 import { GemResource, GEM_LIST, GemType } from "./GemType";
 import { Bomb } from "./Bomb";
 
 export class GemFactory {
-    static getGem = (gemConstructor: GemFactoryonstructor, exclude: GemType[] = []): Gem => {
+    static getGem = (gemConstructor: GemFactoryConstructor, exclude: GemType[] = []): Gem => {
         let gemList = GEM_LIST.filter((g) => !exclude.some(e => e == g.type));
         let item = GemFactory.getType(gemList);
 

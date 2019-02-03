@@ -3,7 +3,7 @@ import { Events } from "./Events";
 import { Grid, Coordenate } from './Grid';
 import { GemType } from './GemType';
 
-export class GemFactoryonstructor {
+export class GemFactoryConstructor {
     x: number;
     y: number;
     cell: Coordenate;
@@ -12,7 +12,7 @@ export class GemFactoryonstructor {
     grid: Grid<Gem>;
 }
 
-export class GemConstructor extends GemFactoryonstructor {
+export class GemConstructor extends GemFactoryConstructor {
     typeName: string;
     type: GemType;
 }
