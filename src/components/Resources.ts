@@ -27,5 +27,4 @@ class Resources {
     public static readonly scorePanel = new Resource("scorePanel", IMAGE_PATH + "score_panel.png");
 }
 
-
 export { Resource, Resources };

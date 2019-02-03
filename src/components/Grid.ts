@@ -8,7 +8,7 @@ export class Cell<T> extends Coordenate {
 }
 
 export class Grid<T> {
-    private _row: Cell<T>[][];
+    private _rows: Cell<T>[][];
     private _columns: Cell<T>[][];
 
     readonly numberOfColumns: number;
@@ -19,27 +19,27 @@ export class Grid<T> {
         this.numberOfRows = coordenate.row;
 
         this._columns = this.createEmptyList(this.numberOfColumns);
-        this._row = this.createEmptyList(this.numberOfRows);
+        this._rows = this.createEmptyList(this.numberOfRows);
     }
 
     populate = (fillFunction: (c: Coordenate) => T) => {
         for (let c = 0; c < this.numberOfColumns; c++) {
-            for (let l = 0; l < this.numberOfRows; l++) {
-                let coordenate: Coordenate = { column: c, row: l };
+            for (let r = 0; r < this.numberOfRows; r++) {
+                let coordenate: Coordenate = { column: c, row: r };
                 let item = fillFunction(coordenate);
-                this._columns[c][l] = { ...coordenate, item };
+                this._columns[c][r] = { ...coordenate, item };
             }
         }
 
-        for (let l = 0; l < this.numberOfColumns; l++) {
+        for (let r = 0; r < this.numberOfColumns; r++) {
             for (let c = 0; c < this.numberOfRows; c++) {
-                this._row[l][c] = this._columns[c][l];
+                this._rows[r][c] = this._columns[c][r];
             }
         }
     }
 
     row = (index: number): Cell<T>[] => {
-        return this._row[index];
+        return this._rows[index];
     }
 
     column = (index: number): Cell<T>[] => {
@@ -53,42 +53,31 @@ export class Grid<T> {
 
     setCell = (coordenate: Coordenate, item: T) => {
         this._columns[coordenate.column][coordenate.row].item = item;
-        this._row[coordenate.row][coordenate.column].item = item;
+        this._rows[coordenate.row][coordenate.column].item = item;
     }
 
     get rows(): Cell<T>[][] {
-        return this._row.map((e) => e.map((g) => g));
+        return this._rows.map((e) => e.map((g) => g));
     }
 
     get columns(): Cell<T>[][] {
         return this._columns.map((e) => e.map((g) => g));
     }
 
-    sortColumnByItem = (func: (a: Cell<T>, b: Cell<T>) => number) => {
-        this._columns.forEach((column) => {
-            column.sort(func);
-        });
+    sortColumns = (func: (a: Cell<T>, b: Cell<T>) => number) => {
+        this.sortArrays(func, this._columns, this._rows);
+    }
 
-        for (let c = 0; c < this.numberOfColumns; c++) {
-            for (let l = 0; l < this.numberOfRows; l++) {
-                let coordenate: Coordenate = { column: c, row: l };
-                this._columns[c][l] = { ...coordenate, item: this._columns[c][l].item };
-            }
-        }
-
-        for (let l = 0; l < this.numberOfColumns; l++) {
-            for (let c = 0; c < this.numberOfRows; c++) {
-                this._row[l][c] = this._columns[c][l];
-            }
-        }
+    sortRows = (func: (a: Cell<T>, b: Cell<T>) => number) => {
+        this.sortArrays(func, this._rows, this._columns);
     }
 
     filter = (func: (e: Cell<T>) => boolean) => {
         let list: Cell<T>[] = [];
-        for (let l = 0; l < this.numberOfColumns; l++) {
+        for (let r = 0; r < this.numberOfColumns; r++) {
             for (let c = 0; c < this.numberOfRows; c++) {
-                if (func(this._columns[c][l])) {
-                    list.push(this._columns[c][l]);
+                if (func(this._columns[c][r])) {
+                    list.push(this._columns[c][r]);
                 };
             };
         };
@@ -98,13 +87,32 @@ export class Grid<T> {
 
     all = () => {
         let list: Cell<T>[] = [];
-        for (let l = 0; l < this.numberOfColumns; l++) {
+        for (let r = 0; r < this.numberOfColumns; r++) {
             for (let c = 0; c < this.numberOfRows; c++) {
-                list.push(this._columns[c][l]);
+                list.push(this._columns[c][r]);
             };
         };
 
         return list;
+    }
+
+    private sortArrays = (func: (a: Cell<T>, b: Cell<T>) => number, array1: Cell<T>[][], array2: Cell<T>[][]) => {
+        array1.forEach((item) => {
+            item.sort(func);
+        });
+
+        for (let c = 0; c < array1.length; c++) {
+            for (let r = 0; r < array2.length; r++) {
+                let coordenate: Coordenate = { column: c, row: r };
+                array1[c][r] = { ...coordenate, item: array1[c][r].item };
+            }
+        };
+
+        for (let r = 0; r < array2.length; r++) {
+            for (let c = 0; c < array1.length; c++) {
+                array2[r][c] = array1[c][r];
+            }
+        };
     }
 
     private createEmptyList = (size: number): Cell<T>[][] => {

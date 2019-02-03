@@ -194,7 +194,7 @@ export class GemGrid {
     }
 
     fall = () => {
-        this.grid.sortColumnByItem((a: Cell<Gem>, b: Cell<Gem>) => {
+        this.grid.sortColumns((a: Cell<Gem>, b: Cell<Gem>) => {
             let aValue = a.item ? 1 : -1;
             let bValue = b.item ? 1 : -1;
             return aValue - bValue;

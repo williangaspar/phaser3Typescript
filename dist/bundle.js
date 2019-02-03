@@ -352,7 +352,7 @@ class GemGrid {
     };
 
     this.fall = () => {
-      this.grid.sortColumnByItem((a, b) => {
+      this.grid.sortColumns((a, b) => {
         let aValue = a.item ? 1 : -1;
         let bValue = b.item ? 1 : -1;
         return aValue - bValue;
@@ -694,27 +694,27 @@ class Grid {
   constructor(coordenate) {
     this.populate = fillFunction => {
       for (let c = 0; c < this.numberOfColumns; c++) {
-        for (let l = 0; l < this.numberOfRows; l++) {
+        for (let r = 0; r < this.numberOfRows; r++) {
           let coordenate = {
             column: c,
-            row: l
+            row: r
           };
           let item = fillFunction(coordenate);
-          this._columns[c][l] = Object.assign({}, coordenate, {
+          this._columns[c][r] = Object.assign({}, coordenate, {
             item
           });
         }
       }
 
-      for (let l = 0; l < this.numberOfColumns; l++) {
+      for (let r = 0; r < this.numberOfColumns; r++) {
         for (let c = 0; c < this.numberOfRows; c++) {
-          this._row[l][c] = this._columns[c][l];
+          this._rows[r][c] = this._columns[c][r];
         }
       }
     };
 
     this.row = index => {
-      return this._row[index];
+      return this._rows[index];
     };
 
     this.column = index => {
@@ -727,40 +727,24 @@ class Grid {
 
     this.setCell = (coordenate, item) => {
       this._columns[coordenate.column][coordenate.row].item = item;
-      this._row[coordenate.row][coordenate.column].item = item;
+      this._rows[coordenate.row][coordenate.column].item = item;
     };
 
-    this.sortColumnByItem = func => {
-      this._columns.forEach(column => {
-        column.sort(func);
-      });
+    this.sortColumns = func => {
+      this.sortArrays(func, this._columns, this._rows);
+    };
 
-      for (let c = 0; c < this.numberOfColumns; c++) {
-        for (let l = 0; l < this.numberOfRows; l++) {
-          let coordenate = {
-            column: c,
-            row: l
-          };
-          this._columns[c][l] = Object.assign({}, coordenate, {
-            item: this._columns[c][l].item
-          });
-        }
-      }
-
-      for (let l = 0; l < this.numberOfColumns; l++) {
-        for (let c = 0; c < this.numberOfRows; c++) {
-          this._row[l][c] = this._columns[c][l];
-        }
-      }
+    this.sortRows = func => {
+      this.sortArrays(func, this._rows, this._columns);
     };
 
     this.filter = func => {
       let list = [];
 
-      for (let l = 0; l < this.numberOfColumns; l++) {
+      for (let r = 0; r < this.numberOfColumns; r++) {
         for (let c = 0; c < this.numberOfRows; c++) {
-          if (func(this._columns[c][l])) {
-            list.push(this._columns[c][l]);
+          if (func(this._columns[c][r])) {
+            list.push(this._columns[c][r]);
           }
 
           ;
@@ -776,9 +760,9 @@ class Grid {
     this.all = () => {
       let list = [];
 
-      for (let l = 0; l < this.numberOfColumns; l++) {
+      for (let r = 0; r < this.numberOfColumns; r++) {
         for (let c = 0; c < this.numberOfRows; c++) {
-          list.push(this._columns[c][l]);
+          list.push(this._columns[c][r]);
         }
 
         ;
@@ -786,6 +770,34 @@ class Grid {
 
       ;
       return list;
+    };
+
+    this.sortArrays = (func, array1, array2) => {
+      array1.forEach(item => {
+        item.sort(func);
+      });
+
+      for (let c = 0; c < array1.length; c++) {
+        for (let r = 0; r < array2.length; r++) {
+          let coordenate = {
+            column: c,
+            row: r
+          };
+          array1[c][r] = Object.assign({}, coordenate, {
+            item: array1[c][r].item
+          });
+        }
+      }
+
+      ;
+
+      for (let r = 0; r < array2.length; r++) {
+        for (let c = 0; c < array1.length; c++) {
+          array2[r][c] = array1[c][r];
+        }
+      }
+
+      ;
     };
 
     this.createEmptyList = size => {
@@ -802,11 +814,11 @@ class Grid {
     this.numberOfColumns = coordenate.column;
     this.numberOfRows = coordenate.row;
     this._columns = this.createEmptyList(this.numberOfColumns);
-    this._row = this.createEmptyList(this.numberOfRows);
+    this._rows = this.createEmptyList(this.numberOfRows);
   }
 
   get rows() {
-    return this._row.map(e => e.map(g => g));
+    return this._rows.map(e => e.map(g => g));
   }
 
   get columns() {
@@ -935,11 +947,11 @@ __webpack_require__(/*! phaser */ 54);
 
 const Events_1 = __webpack_require__(/*! ./Events */ 213);
 
-class GemFactoryonstructor {}
+class GemFactoryConstructor {}
 
-exports.GemFactoryonstructor = GemFactoryonstructor;
+exports.GemFactoryConstructor = GemFactoryConstructor;
 
-class GemConstructor extends GemFactoryonstructor {}
+class GemConstructor extends GemFactoryConstructor {}
 
 exports.GemConstructor = GemConstructor;
 
