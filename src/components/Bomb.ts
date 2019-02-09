@@ -16,9 +16,7 @@ export class Bomb extends Gem {
                 setTimeout(() => {
                     this.scene.sys.events.emit(Events.updateScene);
                 }, 500);
-
             }
-
         });
     }
 
